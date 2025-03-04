@@ -2,12 +2,12 @@
 
 ## **Tech Stack**
 
-- **Frontend:** Next.js (Page Router)  
-- **Styling:** Tailwind CSS, Tailblocks  
-- **Backend:** Flask, REST APIs  
-- **Database:** TBD (MongoDB?)  
-- **Authentication:** Auth0 by Okta  
-- **Testing:** Vitest, pytest  
+- **Frontend:** Next.js (Page Router)
+- **Styling:** Tailwind CSS, Tailblocks
+- **Backend:** Flask, REST APIs
+- **Database:** TBD (MongoDB?)
+- **Authentication:** Auth0 by Okta
+- **Testing:** Vitest, pytest
 
 ## **Setup Instructions**
 
