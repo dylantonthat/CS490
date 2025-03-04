@@ -9,4 +9,5 @@ Backend: Flask, REST APIs
 Database: TBD (Mongo?)
 
 Authentication: Auth0 by Okta
+
 Testing: Vitest, pytest
