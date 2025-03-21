@@ -45,7 +45,7 @@ export default function Navbar() {
           {isAuthenticated ? (
             // Show Log Out button when authenticated
             <button
-              onClick={handleLogout}
+              onClick={() => router.push("/api/auth/logout")}
               className="px-6 py-2 border border-blue-500 text-blue-500 rounded-full hover:bg-blue-300 hover:text-white transition"
             >
               Log Out
@@ -54,17 +54,17 @@ export default function Navbar() {
             // Show Log In & Register buttons when NOT authenticated
             <>
               <button
-                onClick={() => router.push("/login")}
+                onClick={() => router.push("/api/auth/login")}
                 className="px-6 py-2 border border-blue-500 text-blue-500 rounded-full hover:bg-blue-300 hover:text-white transition"
               >
-                Log In
+                Log In/Register
               </button>
-              <button
-                onClick={() => router.push("/register")}
+              {/* <button
+                onClick={() => router.push("/api/auth/signup")}
                 className="px-6 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition"
               >
                 Register
-              </button>
+              </button> */}
             </>
           )}
         </div>
