@@ -2,8 +2,8 @@
 
 ## **Tech Stack**
 
-- **Frontend:** Next.js (Page Router)
-- **Styling:** Tailwind CSS, Tailblocks
+- **Frontend:** Next.js (Page Router), TypeScript
+- **Styling:** Tailwind CSS, Framer Motion
 - **Backend:** Flask, REST APIs
 - **Database:** TBD (MongoDB?)
 - **Authentication:** Auth0 by Okta
