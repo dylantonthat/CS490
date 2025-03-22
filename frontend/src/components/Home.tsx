@@ -1,6 +1,10 @@
 import { motion } from "framer-motion";
+import { useUser } from "@auth0/nextjs-auth0/client";
+
 
 function Home() {
+  const { user , isLoading } = useUser(); 
+
   return (
     <section className="text-gray-600 body-font">
       <div className="container px-5 py-24 mb-36 mx-auto">
@@ -14,9 +18,17 @@ function Home() {
           <h2 className="text-xs text-blue-500 tracking-widest font-medium title-font mb-1">
             Ying Wu Warriors Present
           </h2>
-          <h1 className="sm:text-3xl text-2xl font-medium title-font text-gray-900">
-            AI-POWERED RESUME TOOL
-          </h1>
+          { user ? (
+              <h1 className="sm:text-3xl text-2xl font-medium title-font text-gray-900">
+                WELCOME TO YOUR RESUME TOOL
+              </h1>
+            ) : (
+              <h1 className="sm:text-3xl text-2xl font-medium title-font text-gray-900">
+                AI-POWERED RESUME TOOL
+              </h1>
+            )
+          }
+
         </motion.div>
 
         {/* Features Section - With Scroll Animation */}
