@@ -1,17 +1,18 @@
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+// import { useEffect, useState } from "react";
+import { useUser } from "@auth0/nextjs-auth0/client";
 
 export default function Navbar() {
   const router = useRouter();
-
+  const { user , isLoading } = useUser(); 
 
   // Simulate checking authentication
   // Need to replace with real auth logic
-  const [isAuthenticated, setIsAuthenticated] = useState(false); // Track authentication state
-  useEffect(() => {
-    const user = localStorage.getItem("user");
-    setIsAuthenticated(!!user); // Convert value to boolean
-  }, []);
+  // const [isAuthenticated, setIsAuthenticated] = useState(false); // Track authentication state
+  // useEffect(() => {
+  //   const user = localStorage.getItem("user");
+  //   setIsAuthenticated(!!user); // Convert value to boolean
+  // }, []);
 
 
 
@@ -19,11 +20,11 @@ export default function Navbar() {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("user"); // Clear user session (Replace with actual logout logic)
-    setIsAuthenticated(false);
-    router.push("/"); // Redirect to home after logout
-  };
+  // const handleLogout = () => {
+  //   localStorage.removeItem("user"); // Clear user session (Replace with actual logout logic)
+  //   setIsAuthenticated(false);
+  //   router.push("/"); // Redirect to home after logout
+  // };
 
   return (
     <header className="text-gray-600 body-font">
@@ -42,7 +43,9 @@ export default function Navbar() {
         </nav>
 
         <div className="flex space-x-4">
-          {isAuthenticated ? (
+          {isLoading ? (
+            <span>Loading...</span>
+          ) : user ? (
             // Show Log Out button when authenticated
             <button
               onClick={() => router.push("/api/auth/logout")}
