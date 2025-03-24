@@ -23,14 +23,14 @@ function CalltoAction() {
           </p>
         </motion.div>
 
-        {/* Call to Action Button - Navigates to /login */}
+        {/* Call to Action Button - Auth0 login with redirect */}
         <motion.button
           initial={{ opacity: 0, scale: 0.8 }}
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: false, amount: 0.3 }}
           transition={{ duration: 0.4, delay: 0.3, ease: "easeOut" }}
           className="flex mx-auto mt-16 text-white bg-blue-500 border-0 py-3 px-8 focus:outline-none hover:bg-blue-600 rounded text-lg"
-          onClick={() => router.push("/login")}
+          onClick={() => router.push(`/api/auth/login?returnTo=/home`)}
         >
           Get Started
         </motion.button>
