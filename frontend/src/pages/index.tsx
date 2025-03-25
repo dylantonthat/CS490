@@ -1,3 +1,5 @@
+import { GetServerSideProps } from "next";
+import { getSession } from "@auth0/nextjs-auth0";
 import CalltoAction from "@/components/CalltoAction";
 import Feature from "@/components/Feature";
 import Home from "@/components/Home";
@@ -12,6 +14,21 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
+
+export const getServerSideProps: GetServerSideProps = async ({ req, res }) => {
+  const session = await getSession(req, res);
+
+  if (session) {
+    return {
+      redirect: {
+        destination: "/home", // Redirect logged-in users to home
+        permanent: false,
+      },
+    };
+  }
+
+  return { props: {} }; // If no session, stay on landing page
+};
 
 export default function Index() {
   return (
