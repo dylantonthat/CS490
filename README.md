@@ -16,6 +16,7 @@
    ```sh
    git clone <repository-url>
    cd <project-folder>
+   cd frontend
    ```
 2. Install dependencies:
    ```sh
