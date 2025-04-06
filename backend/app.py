@@ -6,7 +6,15 @@ career_hist_texts = {}
 
 app = Flask(__name__)
 
+# AI implementation should probably go in one of these functions
+def parse_docx(filename):
+    return
 
+def parse_pdf(filename):
+    return
+
+def db_store(text):
+    return
 
 @app.route('/')
 def hello():
@@ -18,7 +26,14 @@ def upload_resume():
     file_name, file_ext = file.filename.rsplit('.', 1)
     resume_id = uuid.uuid4
 
-    if file and file_ext in ALLOWED_EXTENSIONS:
+    if file and file_ext.lower() in ALLOWED_EXTENSIONS:
+        if file_ext.lower() == 'docx':
+            resume_text = parse_docx(file)
+        else:
+            resume_text = parse_pdf(file)
+
+        db_store(resume_text)
+
         return jsonify({
             'resumeId': resume_id,
             'status': 'processing'
@@ -47,35 +62,15 @@ def upload_career_history():
 
 @app.route('/api/resumes/history', methods=['GET'])
 def get_career_history():
-    text = request.json()['text']
-    history_id = uuid.uuid4
-
-    if text:
-        return jsonify({
-            'historyId': history_id,
-            'status': 'saved'
-        }), 200
-    
     return jsonify({
-        'error': 'Empty text',
-        'status': 'failed'
-    }), 400
+        'test': 'test'
+    }), 200
 
 @app.route('/api/resumes/education', methods=['GET'])
 def get_edu_history():
-    text = request.json()['text']
-    history_id = uuid.uuid4
-
-    if text:
-        return jsonify({
-            'historyId': history_id,
-            'status': 'saved'
-        }), 200
-    
     return jsonify({
-        'error': 'Empty text',
-        'status': 'failed'
-    }), 400
+        'test': 'test'
+    }), 200
 
 if __name__ == '__main__':
     app.run(debug=True)
