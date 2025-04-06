@@ -72,5 +72,17 @@ def get_edu_history():
         'test': 'test'
     }), 200
 
+@app.route('/api/resumes/history', methods=['PUT'])
+def update_career_history():
+    return jsonify({
+        'test': 'test',
+    }), 200
+
+@app.route('/api/resumes/education', methods=['PUT'])
+def update_edu():
+    return jsonify({
+        'test': 'test',
+    }), 200
+
 if __name__ == '__main__':
     app.run(debug=True)
