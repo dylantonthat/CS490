@@ -1,21 +1,35 @@
+import CareerForm from "@/components/CareerForm";
+import CareerTimeline from "@/components/CareerTimeline";
+import EducationView from "@/components/EducationView";
+import ResumeUpload from "@/components/ResumeUpload";
 import { withPageAuthRequired } from "@auth0/nextjs-auth0";
 
 function Home() {
   return (
-    <section className="flex items-center justify-center h-screen text-gray-800">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">In Progress</h1>
-        <p className="text-lg text-gray-600">
-          This page is under construction. Check back soon!
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white px-4 md:px-16 py-10 space-y-12">
+      <div className="max-w-7xl mx-auto text-center">
+        <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">
+          Welcome to Your <span className="text-blue-500">Resume Dashboard</span>
+        </h1>
+        <p className="text-gray-600 dark:text-gray-300 max-w-xl mx-auto">
+          Upload, organize, and optimize your career history and education seamlessly.
         </p>
       </div>
-    </section>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-7xl mx-auto">
+        <ResumeUpload />
+        <CareerForm />
+      </div>
+
+      <div className="max-w-7xl mx-auto space-y-12">
+        <CareerTimeline />
+        <EducationView />
+      </div>
+      
+
+    </div>
   );
 }
 
-// This will redirect to login and then back to '/' route if user is not authenticated
 export const getServerSideProps = withPageAuthRequired();
-
 export default Home;
-
-
