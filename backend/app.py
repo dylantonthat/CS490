@@ -1,8 +1,15 @@
 import uuid
 from flask import Flask, request, jsonify
+from pymongo import MongoClient
+import PyPDF2
+from docx import Document
+
 
 ALLOWED_EXTENSIONS = {'docx', 'pdf'}
-career_hist_texts = {}
+
+client = MongoClient("mongodb+srv://kdv:fp4ZIfpKYM3zghYX@kdv-cluster.wn6dsp1.mongodb.net/?retryWrites=true&w=majority&appName=kdv-cluster")
+db = client['cs490_project']
+user_info_collection = db['user_info']
 
 app = Flask(__name__)
 
@@ -45,7 +52,7 @@ def upload_resume():
     }), 400
 
 @app.route('/api/resumes/history', methods=['POST'])
-def upload_career_history():
+def upload_freeform_career_history():
     text = request.json()['text']
     history_id = uuid.uuid4
 
@@ -60,6 +67,7 @@ def upload_career_history():
         'status': 'failed'
     }), 400
 
+# I believe this is different from the freeform history. this is from parsing resumes
 @app.route('/api/resumes/history', methods=['GET'])
 def get_career_history():
     return jsonify({
