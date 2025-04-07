@@ -3,6 +3,7 @@ from flask import Flask, request, jsonify
 from pymongo import MongoClient
 import PyPDF2
 from docx import Document
+from auth import get_token_auth_header
 
 
 ALLOWED_EXTENSIONS = {'docx', 'pdf'}
