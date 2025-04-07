@@ -49,7 +49,8 @@ def parse_pdf(filename):
 #how do we check for duplicates????
 def ai_parser(text):
     prompt = f"""
-You are an intelligent parser for resumes. Given the raw text of a resume, extract the following structured information in JSON format.
+You are an intelligent parser for resumes. 
+Given the raw text of a resume, extract the following structured information in JSON format.
 
 Return a JSON object with this structure:
 
@@ -80,7 +81,10 @@ Return a JSON object with this structure:
   ]
 }}
 
-Only include fields you can extract. Do not guess missing values. Here's the resume text:
+Only include fields you can extract.
+Do not guess missing values.
+A resume can have multiple instances of education or career. Each should be stored as a list following the JSON format.
+Here's the resume text:
 
 \"\"\"{text}\"\"\"
 """
