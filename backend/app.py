@@ -16,10 +16,18 @@ app = Flask(__name__)
 
 # AI implementation should probably go in one of these functions
 def parse_docx(filename):
-    return
+    document = Document(filename)
+    text = []
+    for paragraph in document.paragraphs:
+        text.append(paragraph.text)
+    return '\n'.join(text)
 
 def parse_pdf(filename):
-    return
+    reader = PyPDF2.PdfReader(filename)
+    text = []
+    for page in reader.pages:
+        text.append(page.extract_text())
+    return '\n'.join(filter(None, text))
 
 def db_store(text):
     return
