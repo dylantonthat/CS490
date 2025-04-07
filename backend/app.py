@@ -8,6 +8,9 @@ import docx2txt
 import tempfile
 import os
 import pdfplumber
+import openai
+openai.api_key = os.getenv("OPENAI_API_KEY") # SET OPENAI_API_KEY TO OUR API KEY IN OUR ENVIRONMENT (lowk idk how to do this)
+import json
 
 ALLOWED_EXTENSIONS = {'docx', 'pdf'}
 
@@ -43,8 +46,70 @@ def parse_pdf(filename):
                 text.append(page_text)
     return '\n'.join(text)
 
-#function should call ai api key, split text into structured data described in ticket SCRUM 18, and save to db
-#should also check for duplicates inside db? (if duplicates, i think its best if we just delete the duplicate inside the db, so it always prefers the newer info)
+#how do we check for duplicates????
+def ai_parser(text):
+    prompt = f"""
+You are an intelligent parser for resumes. Given the raw text of a resume, extract the following structured information in JSON format.
+
+Return a JSON object with this structure:
+
+{{
+  "contact": {{
+    "name": "",
+    "email": "",
+    "phone": ""
+  }},
+  "education": [
+    {{
+      "degree": "",
+      "institution": "",
+      "start_date": "",
+      "end_date": "",
+      "gpa": ""
+    }}
+  ],
+  "career": [
+    {{
+      "title": "",
+      "company": "",
+      "start_date": "",
+      "end_date": "",
+      "responsibility": "",
+      "accomplishments": ["", ""]
+    }}
+  ]
+}}
+
+Only include fields you can extract. Do not guess missing values. Here's the resume text:
+
+\"\"\"{text}\"\"\"
+"""
+
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",  # or gpt-4 ??? idk i think 3.5 is free but if it sucks i dont mind paying
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant that extracts structured data from resumes."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.2
+        )
+
+        content = response.choices[0].message.content.strip()
+        
+        # Try parsing it as JSON
+        parsed = json.loads(content)
+        return parsed
+
+    except json.JSONDecodeError as e:
+        print("Failed to parse JSON:", e)
+        print("Raw content:", content)
+        return None
+    except Exception as e:
+        print("OpenAI API error:", e)
+        return None
+
+
 def db_store(text):
     return
 
@@ -64,7 +129,9 @@ def upload_resume():
         else:
             resume_text = parse_pdf(file)
 
-        db_store(resume_text)
+        resume_json = ai_parser(resume_text)
+
+        db_store(resume_json)
 
         return jsonify({
             'resumeId': resume_id,
