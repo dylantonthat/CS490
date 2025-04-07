@@ -82,7 +82,7 @@ Return a JSON object with this structure:
 }}
 
 Only include fields you can extract.
-Do not guess missing values.
+Do not guess missing values, leave them blank.
 A resume can have multiple instances of education or career. Each should be stored as a list following the JSON format.
 Here's the resume text:
 
@@ -113,6 +113,74 @@ Here's the resume text:
         print("OpenAI API error:", e)
         return None
 
+def ai_freeform(text):
+    prompt = f"""
+You are an intelligent parser for resumes. 
+Given the raw text of career history information, extract the following structured information in JSON format.
+
+Return a JSON object with this structure:
+
+{{
+  "contact": {{
+    "name": "",
+    "email": "",
+    "phone": ""
+  }},
+  "education": [
+    {{
+      "degree": "",
+      "institution": "",
+      "start_date": "",
+      "end_date": "",
+      "gpa": ""
+    }}
+  ],
+  "career": [
+    {{
+      "title": "",
+      "company": "",
+      "start_date": "",
+      "end_date": "",
+      "responsibility": "",
+      "accomplishments": ["", ""]
+    }}
+  ]
+}}
+
+Since we are extracting only career history, all fields under contact and education must be left blank.
+It must be formatted like this to be used in future steps involving resumes.
+Only include fields you can extract.
+Do not guess missing values, leave them blank.
+
+The career history text can have multiple instances of careers. Each should be stored as a list following the JSON format.
+Here's the career history text:
+
+\"\"\"{text}\"\"\"
+"""
+
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",  # or gpt-4 ??? idk i think 3.5 is free but if it sucks i dont mind paying
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant that extracts structured career history data from free-form text."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.2
+        )
+
+        content = response.choices[0].message.content.strip()
+        
+        # Try parsing it as JSON
+        parsed = json.loads(content)
+        return parsed
+
+    except json.JSONDecodeError as e:
+        print("Failed to parse JSON:", e)
+        print("Raw content:", content)
+        return None
+    except Exception as e:
+        print("OpenAI API error:", e)
+        return None
 
 def db_store(text):
     return
@@ -151,6 +219,10 @@ def upload_resume():
 def upload_freeform_career_history():
     text = request.json()['text']
     history_id = uuid.uuid4
+
+    careers_json = ai_freeform(text)
+
+    db_store(careers_json)
 
     if text:
         return jsonify({
