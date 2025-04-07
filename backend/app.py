@@ -1,16 +1,17 @@
+import json
+import jwt
 import uuid
 from flask import Flask, request, jsonify
 from pymongo import MongoClient
 import PyPDF2
 from docx import Document
-from auth import get_token_auth_header
+from auth import get_token_auth_header, get_rsa_key, AUTH0_DOMAIN, API_AUDIENCE, ALGORITHMS
 import docx2txt
 import tempfile
 import os
 import pdfplumber
 import openai
 openai.api_key = os.getenv("OPENAI_API_KEY") # SET OPENAI_API_KEY TO OUR API KEY IN OUR ENVIRONMENT (lowk idk how to do this)
-import json
 
 ALLOWED_EXTENSIONS = {'docx', 'pdf'}
 
@@ -46,7 +47,61 @@ def parse_pdf(filename):
                 text.append(page_text)
     return '\n'.join(text)
 
-#how do we check for duplicates????
+def db_store(new_data):
+    token = get_token_auth_header()
+    rsa_key = get_rsa_key(token)
+    decoded = jwt.decode(token, key=rsa_key, algorithms=ALGORITHMS, audience=API_AUDIENCE, issuer=f"https://{AUTH0_DOMAIN}/")
+    user_id = decoded.get("sub")
+
+    exist = user_info_collection.find_one({"user_id": user_id})
+
+    if exist:
+        print(f"User {user_id} ALREADY EXISTS")
+
+        user_info_collection.delete_one({"user_id": user_id})
+
+        merged_data = merge(exist, new_data)
+
+        return db_store(merged_data)
+
+    else:
+        new_data["user_id"] = user_id
+        user_info_collection.insert_one(new_data)
+        print(f"DATA STORED: {user_id}")
+
+def merge(existing, incoming):
+    prompt = f"""
+You are a resume data merging assistant.
+
+Given two JSON objects representing extracted resume data for the same user, combine them into one unified JSON object.
+
+Merge strategy:
+- Do NOT duplicate entries (e.g., same job title + company)
+- For overlapping experiences, merge responsibilities and accomplishments
+- Add any unique items from either object
+- Ensure a clean structure with no redundant info
+
+Existing JSON:
+{json.dumps(existing, indent=2)}
+
+New JSON:
+{json.dumps(incoming, indent=2)}
+
+Return the merged JSON object:
+"""
+
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "You are a smart resume merging assistant."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.3
+    )
+
+    merged = response.choices[0].message.content.strip()
+    return json.loads(merged)
+
 def ai_parser(text):
     prompt = f"""
 You are an intelligent parser for resumes. 
