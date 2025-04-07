@@ -11,6 +11,7 @@ import tempfile
 import os
 import pdfplumber
 import openai
+
 openai.api_key = os.getenv("OPENAI_API_KEY") # SET OPENAI_API_KEY TO OUR API KEY IN OUR ENVIRONMENT (lowk idk how to do this)
 
 ALLOWED_EXTENSIONS = {'docx', 'pdf'}
@@ -20,6 +21,8 @@ db = client['cs490_project']
 user_info_collection = db['user_info']
 
 app = Flask(__name__)
+
+
 
 def parse_docx(filename):
     # document = Document(filename)
@@ -32,6 +35,8 @@ def parse_docx(filename):
         text = docx2txt.process(tmp.name)
     os.remove(tmp.name)
     return text
+
+
 
 def parse_pdf(filename):
     # reader = PyPDF2.PdfReader(filename)
@@ -47,27 +52,27 @@ def parse_pdf(filename):
                 text.append(page_text)
     return '\n'.join(text)
 
+
+
 def db_store(new_data):
     token = get_token_auth_header()
     rsa_key = get_rsa_key(token)
     decoded = jwt.decode(token, key=rsa_key, algorithms=ALGORITHMS, audience=API_AUDIENCE, issuer=f"https://{AUTH0_DOMAIN}/")
     user_id = decoded.get("sub")
-
     exist = user_info_collection.find_one({"user_id": user_id})
 
     if exist:
         print(f"User {user_id} ALREADY EXISTS")
-
         user_info_collection.delete_one({"user_id": user_id})
-
         merged_data = merge(exist, new_data)
-
         return db_store(merged_data)
 
     else:
         new_data["user_id"] = user_id
         user_info_collection.insert_one(new_data)
         print(f"DATA STORED: {user_id}")
+
+
 
 def merge(existing, incoming):
     prompt = f"""
@@ -101,6 +106,8 @@ Return the merged JSON object:
 
     merged = response.choices[0].message.content.strip()
     return json.loads(merged)
+
+
 
 def ai_parser(text):
     prompt = f"""
@@ -143,7 +150,6 @@ Here's the resume text:
 
 \"\"\"{text}\"\"\"
 """
-
     try:
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",  # or gpt-4 ??? idk i think 3.5 is free but if it sucks i dont mind paying
@@ -153,7 +159,6 @@ Here's the resume text:
             ],
             temperature=0.2
         )
-
         content = response.choices[0].message.content.strip()
         
         # Try parsing it as JSON
@@ -167,6 +172,8 @@ Here's the resume text:
     except Exception as e:
         print("OpenAI API error:", e)
         return None
+
+
 
 def ai_freeform(text):
     prompt = f"""
@@ -212,7 +219,6 @@ Here's the career history text:
 
 \"\"\"{text}\"\"\"
 """
-
     try:
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",  # or gpt-4 ??? idk i think 3.5 is free but if it sucks i dont mind paying
@@ -224,7 +230,6 @@ Here's the career history text:
         )
 
         content = response.choices[0].message.content.strip()
-        
         # Try parsing it as JSON
         parsed = json.loads(content)
         return parsed
@@ -237,8 +242,7 @@ Here's the career history text:
         print("OpenAI API error:", e)
         return None
 
-def db_store(text):
-    return
+
 
 @app.route('/')
 def hello():
