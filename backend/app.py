@@ -4,7 +4,10 @@ from pymongo import MongoClient
 import PyPDF2
 from docx import Document
 from auth import get_token_auth_header
-
+import docx2txt
+import tempfile
+import os
+import pdfplumber
 
 ALLOWED_EXTENSIONS = {'docx', 'pdf'}
 
@@ -14,21 +17,34 @@ user_info_collection = db['user_info']
 
 app = Flask(__name__)
 
-# AI implementation should probably go in one of these functions
 def parse_docx(filename):
-    document = Document(filename)
-    text = []
-    for paragraph in document.paragraphs:
-        text.append(paragraph.text)
-    return '\n'.join(text)
+    # document = Document(filename)
+    # text = []
+    # for paragraph in document.paragraphs:
+    #     text.append(paragraph.text)
+    # return '\n'.join(text)
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp:
+        filename.save(tmp.name)
+        text = docx2txt.process(tmp.name)
+    os.remove(tmp.name)
+    return text
 
 def parse_pdf(filename):
-    reader = PyPDF2.PdfReader(filename)
+    # reader = PyPDF2.PdfReader(filename)
+    # text = []
+    # for page in reader.pages:
+    #     text.append(page.extract_text())
+    # return '\n'.join(filter(None, text))
     text = []
-    for page in reader.pages:
-        text.append(page.extract_text())
-    return '\n'.join(filter(None, text))
+    with pdfplumber.open(filename) as pdf:
+        for page in pdf.pages:
+            page_text = page.extract_text()
+            if page_text:
+                text.append(page_text)
+    return '\n'.join(text)
 
+#function should call ai api key, split text into structured data described in ticket SCRUM 18, and save to db
+#should also check for duplicates inside db? (if duplicates, i think its best if we just delete the duplicate inside the db, so it always prefers the newer info)
 def db_store(text):
     return
 
