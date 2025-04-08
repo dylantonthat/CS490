@@ -1,4 +1,4 @@
-import CareerTimeline from "@/components/CareerComponent";
+import CareerComponent from "@/components/CareerComponent";
 import { withPageAuthRequired } from "@auth0/nextjs-auth0";
 
 function CareerPage() {
@@ -8,7 +8,7 @@ function CareerPage() {
         <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-8">
           Your Career History
         </h1>
-        <CareerTimeline />
+        <CareerComponent />
       </div>
     </div>
   );
