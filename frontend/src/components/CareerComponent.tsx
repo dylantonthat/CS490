@@ -3,7 +3,6 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 
 interface Job {
-  id?: number;
   title: string;
   company: string;
   startDate: string;
