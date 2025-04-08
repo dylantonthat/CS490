@@ -15,11 +15,13 @@ class AuthError(Exception):
 def get_token_auth_header():
     """Obtains the access token from the Authorization Header
     """
+    print("**********AUTH 0", request.headers)
     auth = request.headers.get("Authorization", None)
     if not auth:
         raise AuthError({"code": "authorization_header_missing",
                         "description":
                             "Authorization header is expected"}, 401)
+    print("**********AUTH 1")
 
     parts = auth.split()
 
@@ -36,6 +38,7 @@ def get_token_auth_header():
                         "description":
                             "Authorization header must be"
                             " Bearer token"}, 401)
+    print("**********AUTH 2")
 
     token = parts[1]
     return token
