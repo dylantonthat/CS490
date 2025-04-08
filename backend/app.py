@@ -1,6 +1,5 @@
 import json
 import re
-import jwt
 from flask_cors import CORS
 import uuid
 from flask import Flask, request, jsonify
@@ -127,8 +126,8 @@ Return a JSON object with this structure:
     {{
       "degree": "",
       "institution": "",
-      "start_date": "",
-      "end_date": "",
+      "startDate": "",
+      "endDate": "",
       "gpa": ""
     }}
   ],
@@ -136,8 +135,8 @@ Return a JSON object with this structure:
     {{
       "title": "",
       "company": "",
-      "start_date": "",
-      "end_date": "",
+      "startDate": "",
+      "endDate": "",
       "responsibility": "",
       "accomplishments": ["", ""]
     }}
@@ -146,6 +145,7 @@ Return a JSON object with this structure:
 
 Only include fields you can extract.
 Do not guess missing values, leave them blank.
+Use the exact parameter names.
 
 It is important to distinguish responsibility and accomplishments for each career.
 The responsibility should be their main job description for that task, there should only be one.
@@ -206,8 +206,8 @@ Return a JSON object with this structure:
     {{
       "degree": "",
       "institution": "",
-      "start_date": "",
-      "end_date": "",
+      "startDate": "",
+      "endDate": "",
       "gpa": ""
     }}
   ],
@@ -215,8 +215,8 @@ Return a JSON object with this structure:
     {{
       "title": "",
       "company": "",
-      "start_date": "",
-      "end_date": "",
+      "startDate": "",
+      "endDate": "",
       "responsibility": "",
       "accomplishments": ["", ""]
     }}
@@ -227,6 +227,7 @@ Since we are extracting only career history, all fields under contact and educat
 It must be formatted like this to be used in future steps involving resumes.
 Only include fields you can extract.
 Do not guess missing values, leave them blank.
+Use the exact parameter names.
 
 The career history text can have multiple instances of careers. Each should be stored as a list following the JSON format.
 
@@ -346,6 +347,9 @@ def get_career_history():
 
     else:
         print("****** USER DOES NOT EXIST")
+        return jsonify({
+            "hiii": "iiii"
+        }), 200
     #TODO: write rest of function. Should take exist and extract all career info, then return it
     return jsonify(user_career), 200
 
@@ -360,17 +364,20 @@ def get_edu_history():
 
     else:
         print("****** USER DOES NOT EXIST")
+        return jsonify({
+            "hiii": "iiii"
+        }), 200
     #TODO: write rest of function. Should take exist and extract all education info, then return it
     return jsonify(user_edu), 200
 
-@app.route('/api/resumes/history', methods=['PUT'])
+@app.route('/api/resumes/history:id', methods=['PUT'])
 def update_career_history():
     user_id = request.headers.get('Email', None)
     return jsonify({
         'test': 'test',
     }), 200
 
-@app.route('/api/resumes/education', methods=['PUT'])
+@app.route('/api/resumes/education:id', methods=['PUT'])
 def update_edu():
     user_id = request.headers.get('Email', None)
     return jsonify({
