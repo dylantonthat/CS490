@@ -146,6 +146,7 @@ Return a JSON object with this structure:
 
 Only include fields you can extract.
 Do not guess missing values, leave them blank.
+Use the exact parameter names.
 
 It is important to distinguish responsibility and accomplishments for each career.
 The responsibility should be their main job description for that task, there should only be one.
@@ -227,6 +228,7 @@ Since we are extracting only career history, all fields under contact and educat
 It must be formatted like this to be used in future steps involving resumes.
 Only include fields you can extract.
 Do not guess missing values, leave them blank.
+Use the exact parameter names.
 
 The career history text can have multiple instances of careers. Each should be stored as a list following the JSON format.
 
