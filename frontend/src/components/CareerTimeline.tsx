@@ -17,7 +17,7 @@ export default function CareerTimeline() {
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    axios.get("/api/resumes/history").then((res) => {
+    axios.get("http://localhost:5000/api/resumes/history").then((res) => {
       setJobs(res.data.jobs || []);
     });
   }, []);
@@ -39,7 +39,7 @@ export default function CareerTimeline() {
 
   const handleSaveClick = async () => {
     try {
-      await axios.put(`/api/resumes/history/${editingJobId}`, formData);
+      await axios.put(`http://localhost:5000/api/resumes/history/${editingJobId}`, formData);
       setJobs((prev) =>
         prev.map((job) => (job.id === editingJobId ? { ...job, ...formData } : job))
       );

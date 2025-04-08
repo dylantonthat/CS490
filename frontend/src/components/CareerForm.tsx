@@ -11,7 +11,7 @@ export default function CareerForm() {
 
     try {
       setStatus("Submitting...");
-      await axios.post("/api/resumes/history", { raw: entry });
+      await axios.post("http://localhost:5000/api/resumes/history", { text: entry });
       setStatus("Entry saved");
       setEntry("");
     } catch {
