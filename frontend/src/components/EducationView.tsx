@@ -1,6 +1,6 @@
+import { useUser } from '@auth0/nextjs-auth0/client';
 import axios from "axios";
 import { useEffect, useState } from "react";
-import { useUser } from '@auth0/nextjs-auth0/client';
 
 interface Education {
   id: number;
@@ -31,7 +31,7 @@ export default function EducationView() {
     const user_email = user.email;
     console.log(user_email);
 
-    axios.get("http://localhost:5000/api/resumes/education", {
+    axios.get("https://localhost:5000/api/resumes/education", {
       headers: {
         Email: `${user_email}`,
       },
@@ -75,11 +75,11 @@ export default function EducationView() {
           ...formData,
           id: education[editingIndex].id,
         } as Education;
-        await axios.put(`http://localhost:5000/api/resumes/education/${education[editingIndex].id}`, formData);
+        await axios.put(`https://localhost:5000/api/resumes/education/${education[editingIndex].id}`, formData);
         setEducation(updated);
         setMessage("Education updated successfully.");
       } else {
-        const res = await axios.post("http://localhost:5000/api/resumes/education", formData);
+        const res = await axios.post("https://localhost:5000/api/resumes/education", formData);
         setEducation((prev) => [...prev, res.data]);
         setMessage("Education added successfully.");
       }
@@ -93,7 +93,7 @@ export default function EducationView() {
 
   const handleRemove = async (index: number) => {
     try {
-      await axios.delete(`http://localhost:5000/api/resumes/education/${education[index].id}`);
+      await axios.delete(`https://localhost:5000/api/resumes/education/${education[index].id}`);
       setEducation((prev) => prev.filter((_, i) => i !== index));
       setMessage("Entry removed.");
     } catch {

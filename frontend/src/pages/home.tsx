@@ -1,6 +1,4 @@
 import CareerForm from "@/components/CareerForm";
-import CareerTimeline from "@/components/CareerTimeline";
-import EducationView from "@/components/EducationView";
 import ResumeUpload from "@/components/ResumeUpload";
 import { withPageAuthRequired } from "@auth0/nextjs-auth0";
 
@@ -20,13 +18,6 @@ function Home() {
         <ResumeUpload />
         <CareerForm />
       </div>
-
-      <div className="max-w-7xl mx-auto space-y-12">
-        <CareerTimeline />
-        <EducationView />
-      </div>
-      
-
     </div>
   );
 }

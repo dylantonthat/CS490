@@ -1,6 +1,6 @@
+import { useUser } from '@auth0/nextjs-auth0/client';
 import axios from "axios";
 import { useEffect, useState } from "react";
-import { useUser } from '@auth0/nextjs-auth0/client';
 
 interface Job {
   id: number;
@@ -11,7 +11,7 @@ interface Job {
   responsibilities: string;
 }
 
-export default function CareerTimeline() {
+export default function CareerComponent() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [editingJobId, setEditingJobId] = useState<number | null>(null);
   const [formData, setFormData] = useState<Partial<Job>>({});
