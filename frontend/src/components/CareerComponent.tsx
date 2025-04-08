@@ -3,6 +3,7 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 
 interface Job {
+  id?: number;
   title: string;
   company: string;
   startDate: string;
@@ -13,7 +14,13 @@ interface Job {
 export default function CareerComponent() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [editingJobId, setEditingJobId] = useState<number | null>(null);
-  const [formData, setFormData] = useState<Partial<Job>>({});
+  const [formData, setFormData] = useState<Partial<Job>>({
+    title: "",
+    company: "",
+    startDate: "",
+    endDate: "",
+    responsibilities: "",
+  });
   const [message, setMessage] = useState<string | null>(null);
   const { user } = useUser();
 
@@ -26,6 +33,11 @@ export default function CareerComponent() {
     .catch((err) => console.error("Error fetching job history:", err));
   }, [user]);
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
   const handleEditClick = (job: Job, index: number) => {
     setEditingJobId(index);
     setFormData(job);
@@ -33,29 +45,38 @@ export default function CareerComponent() {
 
   const handleCancelClick = () => {
     setEditingJobId(null);
-    setFormData({});
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData({
+      title: "",
+      company: "",
+      startDate: "",
+      endDate: "",
+      responsibilities: "",
+    });
   };
 
   const handleSaveClick = async () => {
+    if (!user) return;
     try {
-      await axios.put("http://localhost:5000/api/resumes/history", {
-        index: editingJobId,
-        ...formData,
-      });
-      setJobs((prev) =>
-        prev.map((job, idx) => (idx === editingJobId ? { ...job, ...formData } : job))
-      );
-      setMessage("Job updated successfully.");
+      if (editingJobId !== null) {
+        await axios.put("http://localhost:5000/api/resumes/history", {
+          index: editingJobId,
+          ...formData,
+        });
+        setJobs((prev) =>
+          prev.map((job, idx) => (idx === editingJobId ? { ...job, ...formData } : job))
+        );
+        setMessage("Job updated successfully.");
+      } else {
+        const res = await axios.post("http://localhost:5000/api/resumes/history", formData, {
+          headers: { Email: `${user.email}` },
+        });
+        setJobs((prev) => [...prev, res.data]);
+        setMessage("New job added.");
+      }
     } catch {
-      setMessage("Failed to update job.");
+      setMessage("Failed to save job.");
     } finally {
-      setEditingJobId(null);
-      setFormData({});
+      handleCancelClick();
       setTimeout(() => setMessage(null), 3000);
     }
   };
@@ -63,7 +84,14 @@ export default function CareerComponent() {
   return (
     <div className="w-full p-8 bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-200 dark:border-gray-800">
       <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-6">Career History</h2>
-      {message && <div className="mb-4 text-sm text-center text-blue-700 dark:text-blue-300">{message}</div>}
+
+      {message && (
+        <div className="mb-4 text-sm text-center text-blue-700 dark:text-blue-300">
+          {message}
+        </div>
+      )}
+
+      {/* Career Entries */}
       {jobs.length === 0 ? (
         <p className="text-gray-600 dark:text-gray-400">No career history available.</p>
       ) : (
@@ -86,7 +114,9 @@ export default function CareerComponent() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <div className="text-base font-semibold text-gray-800 dark:text-white">{job.title} <span className="text-gray-500">@ {job.company}</span></div>
+                  <div className="text-base font-semibold text-gray-800 dark:text-white">
+                    {job.title} <span className="text-gray-500">@ {job.company}</span>
+                  </div>
                   <div className="text-sm text-gray-500 dark:text-gray-400">{job.startDate} – {job.endDate}</div>
                   <div className="text-sm text-gray-700 dark:text-gray-300">{job.responsibilities}</div>
                   <button onClick={() => handleEditClick(job, index)} className="mt-2 px-4 py-1 text-sm rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-all">Edit</button>
@@ -96,6 +126,26 @@ export default function CareerComponent() {
           ))}
         </div>
       )}
+
+      {/* Add New Career */}
+      <div className="mt-8 border-t border-gray-200 dark:border-gray-700 pt-6 space-y-4">
+        <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
+          Add New Career Entry
+        </h3>
+        <div className="space-y-2">
+          <input type="text" name="title" placeholder="Title" value={editingJobId === null ? formData.title || "" : ""} onChange={handleChange} className="w-full p-2 text-sm border rounded-md text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700" />
+          <input type="text" name="company" placeholder="Company" value={editingJobId === null ? formData.company || "" : ""} onChange={handleChange} className="w-full p-2 text-sm border rounded-md text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700" />
+          <div className="grid grid-cols-2 gap-4">
+            <input type="text" name="startDate" placeholder="Start Date" value={editingJobId === null ? formData.startDate || "" : ""} onChange={handleChange} className="w-full p-2 text-sm border rounded-md text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700" />
+            <input type="text" name="endDate" placeholder="End Date" value={editingJobId === null ? formData.endDate || "" : ""} onChange={handleChange} className="w-full p-2 text-sm border rounded-md text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700" />
+          </div>
+          <textarea name="responsibilities" placeholder="Responsibilities" rows={4} value={editingJobId === null ? formData.responsibilities || "" : ""} onChange={handleChange} className="w-full p-2 text-sm border rounded-md resize-none text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700" />
+          <div className="flex gap-2 mt-2">
+            <button onClick={handleSaveClick} className="px-4 py-1 text-sm rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-all">Add</button>
+            <button onClick={handleCancelClick} className="px-4 py-1 text-sm rounded-full bg-gray-500 text-white hover:bg-gray-600 transition-all">Clear</button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
