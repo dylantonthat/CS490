@@ -257,29 +257,27 @@ def hello():
 
 @app.route('/api/resumes/upload', methods=['POST'])
 def upload_resume():
-    print("FILES RECEIVED 1:", request.files)
+    print("FILE RECEIVED:", request.files) #debugging, remove later
     if 'file' not in request.files:
         return jsonify({"error": "No file part"}), 400
-
-    # file = request.files['file']
 
     file = request.files['file']
     file_name, file_ext = file.filename.rsplit('.', 1)
     resume_id = uuid.uuid4
-    print("FILES RECEIVED 2:", file_ext)
 
     if file and file_ext.lower() in ALLOWED_EXTENSIONS:
         if file_ext.lower() == 'docx':
             resume_text = parse_docx(file)
+            print("FILE IS A DOCX", file_ext) #debugging, remove later
         else:
             resume_text = parse_pdf(file)
-            print("FILES RECEIVED 3:", request.files)
+            print("FILE IS A PDF", file_ext) #debugging, remove later
 
         resume_json = ai_parser(resume_text)
-        print("FILES RECEIVED 4:", request.files)
+        print("FILE PARSED:", resume_json) #debugging, remove later
 
         db_store(resume_json)
-        print("FILES RECEIVED 5:", request.files)
+        print("FILE STORED!") #debugging, remove later
 
         return jsonify({
             'resumeId': resume_id,
