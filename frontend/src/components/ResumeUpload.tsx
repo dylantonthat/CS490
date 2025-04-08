@@ -9,11 +9,11 @@ export default function ResumeUpload() {
     if (!file) return;
 
     const formData = new FormData();
-    formData.append("resume", file);
+    formData.append("file", file);
 
     try {
       setStatus("Uploading...");
-      await axios.post("/api/resumes/upload", formData);
+      await axios.post("http://localhost:5000/api/resumes/upload", formData);
       setStatus("Upload successful");
     } catch (err) {
       setStatus("Upload failed. Please try again.");
