@@ -28,8 +28,8 @@ export default function EducationView() {
     axios.get("http://localhost:5000/api/resumes/education", {
       headers: { Email: `${user.email}` },
     })
-    .then((res) => setEducation(res.data.education || []))
-    .catch((err) => console.error("Error fetching education:", err));
+      .then((res) => setEducation(res.data.education || []))
+      .catch((err) => console.error("Error fetching education:", err));
   }, [user]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -88,8 +88,15 @@ export default function EducationView() {
   return (
     <div className="w-full p-8 bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-200 dark:border-gray-800">
       <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-6">Education</h2>
-      {message && <div className="mb-4 text-sm text-center text-blue-700 dark:text-blue-300">{message}</div>}
-      <div className="space-y-6">
+
+      {message && (
+        <div className="mb-4 text-sm text-center text-blue-700 dark:text-blue-300">
+          {message}
+        </div>
+      )}
+
+      {/* Education Cards */}
+      <div className="space-y-6 mb-12">
         {education.map((edu, index) => (
           <div key={index} className="p-5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg space-y-2">
             {editingIndex === index ? (
@@ -119,6 +126,24 @@ export default function EducationView() {
             )}
           </div>
         ))}
+      </div>
+
+      {/* Add New Education Entry */}
+      <div className="border-t border-gray-200 dark:border-gray-700 pt-6 space-y-4">
+        <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
+          Add New Education Entry
+        </h3>
+        <input type="text" name="degree" placeholder="Degree" value={editingIndex === null ? formData.degree || "" : ""} onChange={handleInputChange} className="w-full p-2 text-sm border rounded-md text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700" />
+        <input type="text" name="institution" placeholder="Institution" value={editingIndex === null ? formData.institution || "" : ""} onChange={handleInputChange} className="w-full p-2 text-sm border rounded-md text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700" />
+        <div className="grid grid-cols-2 gap-4">
+          <input type="text" name="startDate" placeholder="Start Date" value={editingIndex === null ? formData.startDate || "" : ""} onChange={handleInputChange} className="w-full p-2 text-sm border rounded-md text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700" />
+          <input type="text" name="endDate" placeholder="End Date" value={editingIndex === null ? formData.endDate || "" : ""} onChange={handleInputChange} className="w-full p-2 text-sm border rounded-md text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700" />
+        </div>
+        <input type="text" name="gpa" placeholder="GPA (optional)" value={editingIndex === null ? formData.gpa || "" : ""} onChange={handleInputChange} className="w-full p-2 text-sm border rounded-md text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700" />
+        <div className="flex gap-2 mt-2">
+          <button onClick={handleSave} className="px-4 py-1 text-sm rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-all">Add</button>
+          <button onClick={handleCancel} className="px-4 py-1 text-sm rounded-full bg-gray-500 text-white hover:bg-gray-600 transition-all">Clear</button>
+        </div>
       </div>
     </div>
   );
