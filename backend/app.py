@@ -4,7 +4,7 @@ from flask_cors import CORS
 import uuid
 from flask import Flask, request, jsonify
 from pymongo import MongoClient
-from backend.auth import get_token_auth_header, get_rsa_key, AUTH0_DOMAIN, API_AUDIENCE, ALGORITHMS
+# from backend.auth import get_token_auth_header, get_rsa_key, AUTH0_DOMAIN, API_AUDIENCE, ALGORITHMS
 import docx2txt
 import tempfile
 import os
@@ -48,10 +48,11 @@ def parse_pdf(filename):
 
 
 def db_store(new_data):
-    token = get_token_auth_header()
-    rsa_key = get_rsa_key(token)
-    decoded = jwt.decode(token, key=rsa_key, algorithms=ALGORITHMS, audience=API_AUDIENCE, issuer=f"https://{AUTH0_DOMAIN}/")
-    user_id = decoded.get("sub")
+    # token = get_token_auth_header()
+    # rsa_key = get_rsa_key(token)
+    # decoded = jwt.decode(token, key=rsa_key, algorithms=ALGORITHMS, audience=API_AUDIENCE, issuer=f"https://{AUTH0_DOMAIN}/")
+    # user_id = decoded.get("sub")
+    user_id = request.headers.get('Email', None)
     exist = user_info_collection.find_one({"user_id": user_id})
 
     if exist:
@@ -265,7 +266,7 @@ def upload_resume():
 
     file = request.files['file']
     file_name, file_ext = file.filename.rsplit('.', 1)
-    resume_id = uuid.uuid4
+    resume_id = str(uuid.uuid4())
     print("FILES RECEIVED 2:", file_ext)
 
     if file and file_ext.lower() in ALLOWED_EXTENSIONS:
