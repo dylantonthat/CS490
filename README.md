@@ -39,6 +39,7 @@
    ```
 3. Install dependencies:
    ```sh
+   export OPENAI_API_KEY=(put openai api key here)
    pip install -r requirements.txt
    ```
 4. Start the Flask server:
