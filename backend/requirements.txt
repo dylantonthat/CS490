@@ -1,0 +1,8 @@
+docx2txt
+flask
+flask_cors
+pyjwt
+pdfplumber
+pymongo
+openai
+collections
