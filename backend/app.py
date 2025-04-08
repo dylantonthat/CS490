@@ -1,6 +1,5 @@
 import json
 import re
-import jwt
 from flask_cors import CORS
 import uuid
 from flask import Flask, request, jsonify
