@@ -291,7 +291,7 @@ def upload_resume():
 
 @app.route('/api/resumes/history', methods=['POST'])
 def upload_freeform_career_history():
-    text = request.json()['text']
+    text = request.json['text']
     history_id = uuid.uuid4
 
     print("TEXT RECEIVED:", text) #debugging, remove later
