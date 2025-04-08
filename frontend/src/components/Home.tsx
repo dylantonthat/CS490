@@ -1,5 +1,5 @@
-import { motion } from "framer-motion";
 import { useUser } from "@auth0/nextjs-auth0/client";
+import { motion } from "framer-motion";
 
 
 function Home() {
@@ -87,7 +87,7 @@ const features = [
     title: "Actionable Insights",
     subtitle: "Receive Personalized Suggestions",
     description: "Get job-specific resume recommendations to boost your chances.",
-    image: "/suggestion.png",
+    image: "/suggestion.PNG",
   },
 ];
 

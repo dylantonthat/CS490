@@ -1,26 +1,29 @@
 import json
 import jwt
+from flask_cors import CORS
 import uuid
 from flask import Flask, request, jsonify
 from pymongo import MongoClient
-import PyPDF2
-from docx import Document
-from auth import get_token_auth_header, get_rsa_key, AUTH0_DOMAIN, API_AUDIENCE, ALGORITHMS
+from backend.auth import get_token_auth_header, get_rsa_key, AUTH0_DOMAIN, API_AUDIENCE, ALGORITHMS
 import docx2txt
 import tempfile
 import os
 import pdfplumber
 import openai
 
-openai.api_key = os.getenv("OPENAI_API_KEY") # SET OPENAI_API_KEY TO OUR API KEY IN OUR ENVIRONMENT (lowk idk how to do this)
+client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+
+ # SET OPENAI_API_KEY TO OUR API KEY IN OUR ENVIRONMENT (lowk idk how to do this)
 
 ALLOWED_EXTENSIONS = {'docx', 'pdf'}
 
-client = MongoClient("mongodb+srv://kdv:fp4ZIfpKYM3zghYX@kdv-cluster.wn6dsp1.mongodb.net/?retryWrites=true&w=majority&appName=kdv-cluster")
-db = client['cs490_project']
+clientDB = MongoClient("mongodb+srv://kdv:fp4ZIfpKYM3zghYX@kdv-cluster.wn6dsp1.mongodb.net/?retryWrites=true&w=majority&appName=kdv-cluster")
+db = clientDB['cs490_project']
 user_info_collection = db['user_info']
 
 app = Flask(__name__)
+CORS(app, origins=["http://localhost:3000"])
 
 
 
@@ -95,14 +98,12 @@ New JSON:
 Return the merged JSON object:
 """
 
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": "You are a smart resume merging assistant."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.3
-    )
+    response = client.chat.completions.create(model="gpt-3.5-turbo",
+    messages=[
+        {"role": "system", "content": "You are a smart resume merging assistant."},
+        {"role": "user", "content": prompt}
+    ],
+    temperature=0.3)
 
     merged = response.choices[0].message.content.strip()
     return json.loads(merged)
@@ -145,23 +146,22 @@ Return a JSON object with this structure:
 
 Only include fields you can extract.
 Do not guess missing values, leave them blank.
-A resume can have multiple instances of education or career. Each should be stored as a list following the JSON format.
 Here's the resume text:
 
 \"\"\"{text}\"\"\"
 """
+
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",  # or gpt-4 ??? idk i think 3.5 is free but if it sucks i dont mind paying
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant that extracts structured data from resumes."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.2
         )
+
         content = response.choices[0].message.content.strip()
-        
-        # Try parsing it as JSON
         parsed = json.loads(content)
         return parsed
 
@@ -220,14 +220,12 @@ Here's the career history text:
 \"\"\"{text}\"\"\"
 """
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",  # or gpt-4 ??? idk i think 3.5 is free but if it sucks i dont mind paying
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant that extracts structured career history data from free-form text."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.2
-        )
+        response = client.chat.completions.create(model="gpt-3.5-turbo",  # or gpt-4 ??? idk i think 3.5 is free but if it sucks i dont mind paying
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant that extracts structured career history data from free-form text."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.2)
 
         content = response.choices[0].message.content.strip()
         # Try parsing it as JSON
@@ -250,25 +248,35 @@ def hello():
 
 @app.route('/api/resumes/upload', methods=['POST'])
 def upload_resume():
+    print("FILES RECEIVED 1:", request.files)
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part"}), 400
+
+    # file = request.files['file']
+
     file = request.files['file']
     file_name, file_ext = file.filename.rsplit('.', 1)
     resume_id = uuid.uuid4
+    print("FILES RECEIVED 2:", file_ext)
 
     if file and file_ext.lower() in ALLOWED_EXTENSIONS:
         if file_ext.lower() == 'docx':
             resume_text = parse_docx(file)
         else:
             resume_text = parse_pdf(file)
+            print("FILES RECEIVED 3:", request.files)
 
         resume_json = ai_parser(resume_text)
+        print("FILES RECEIVED 4:", request.files)
 
         db_store(resume_json)
+        print("FILES RECEIVED 5:", request.files)
 
         return jsonify({
             'resumeId': resume_id,
             'status': 'processing'
         }), 200
-    
+
     return jsonify({
         'error': 'Unsupported file type',
         'status': 'failed'
@@ -288,7 +296,7 @@ def upload_freeform_career_history():
             'historyId': history_id,
             'status': 'saved'
         }), 200
-    
+
     return jsonify({
         'error': 'Empty text',
         'status': 'failed'

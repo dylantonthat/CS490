@@ -1,4 +1,10 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+
+.button-pill {
+  @apply px-3 py-1 text-sm rounded-full text-white transition;
+}
 
 :root {
   --background: #ffffff;
