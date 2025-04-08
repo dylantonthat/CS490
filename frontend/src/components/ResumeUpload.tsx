@@ -1,19 +1,28 @@
 import axios from "axios";
 import { useState } from "react";
+import { useUser } from '@auth0/nextjs-auth0/client';
 
 export default function ResumeUpload() {
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<string>("");
+  const { user, error, isLoading } = useUser()
 
   const handleUpload = async () => {
     if (!file) return;
+    if (!user) return;
 
+    const user_email = user.email;
+    console.log(user_email);
     const formData = new FormData();
     formData.append("file", file);
 
     try {
       setStatus("Uploading...");
-      await axios.post("http://localhost:5000/api/resumes/upload", formData);
+      await axios.post("http://localhost:5000/api/resumes/upload", formData, {
+        headers: {
+          Email: `${user_email}`,
+        }
+      });
       setStatus("Upload successful");
     } catch (err) {
       setStatus("Upload failed. Please try again.");
