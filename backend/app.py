@@ -82,10 +82,12 @@ Merge strategy:
 - For cases where 2 unique items cannot be merged, for instance 2 different phone numbers, chose the one from the new JSON
 
 Existing JSON:
-{json.dumps(existing, indent=2)}
+\"\"\"{existing}\"\"\"
+
 
 New JSON:
-{json.dumps(incoming, indent=2)}
+\"\"\"{incoming}\"\"\"
+
 
 Return the merged JSON object:
 """
@@ -294,7 +296,7 @@ def upload_resume():
 @app.route('/api/resumes/history', methods=['POST'])
 def upload_freeform_career_history():
     text = request.json['text']
-    history_id = uuid.uuid4
+    history_id = str(uuid.uuid4())
 
     print("TEXT RECEIVED:", text) #debugging, remove later
 
