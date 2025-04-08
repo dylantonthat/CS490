@@ -28,11 +28,6 @@ CORS(app, origins=["http://localhost:3000"])
 
 
 def parse_docx(filename):
-    # document = Document(filename)
-    # text = []
-    # for paragraph in document.paragraphs:
-    #     text.append(paragraph.text)
-    # return '\n'.join(text)
     with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp:
         filename.save(tmp.name)
         text = docx2txt.process(tmp.name)
@@ -42,11 +37,6 @@ def parse_docx(filename):
 
 
 def parse_pdf(filename):
-    # reader = PyPDF2.PdfReader(filename)
-    # text = []
-    # for page in reader.pages:
-    #     text.append(page.extract_text())
-    # return '\n'.join(filter(None, text))
     text = []
     with pdfplumber.open(filename) as pdf:
         for page in pdf.pages:
@@ -88,6 +78,7 @@ Merge strategy:
 - For overlapping experiences, merge responsibilities and accomplishments
 - Add any unique items from either object
 - Ensure a clean structure with no redundant info
+- For cases where 2 unique items cannot be merged, for instance 2 different phone numbers, chose the one from the new JSON
 
 Existing JSON:
 {json.dumps(existing, indent=2)}
@@ -146,6 +137,15 @@ Return a JSON object with this structure:
 
 Only include fields you can extract.
 Do not guess missing values, leave them blank.
+
+It is important to distinguish responsibility and accomplishments for each career.
+The responsibility should be their main job description for that task, there should only be one.
+The accomplishments should be a list of accomplishments they were able to achieve, there can be multiple
+Either of these can be blank.
+For example, a responsibility would be: created QA tests for the development team to use.
+An accomplishment would be: cut costs by 25% by implementing a new feature.
+It is up to you to determine what is a feature and what is an accomplishment.
+
 Here's the resume text:
 
 \"\"\"{text}\"\"\"
@@ -215,6 +215,15 @@ Only include fields you can extract.
 Do not guess missing values, leave them blank.
 
 The career history text can have multiple instances of careers. Each should be stored as a list following the JSON format.
+
+It is important to distinguish responsibility and accomplishments for each career.
+The responsibility should be their main job description for that task, there should only be one.
+The accomplishments should be a list of accomplishments they were able to achieve, there can be multiple
+Either of these can be blank.
+For example, a responsibility would be: created QA tests for the development team to use.
+An accomplishment would be: cut costs by 25% by implementing a new feature.
+It is up to you to determine what is a feature and what is an accomplishment.
+
 Here's the career history text:
 
 \"\"\"{text}\"\"\"
