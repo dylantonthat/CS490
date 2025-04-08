@@ -8,6 +8,7 @@ interface Job {
   startDate: string;
   endDate: string;
   responsibilities: string;
+  accomplishments?: string[];
 }
 
 export default function CareerComponent() {
@@ -27,7 +28,7 @@ export default function CareerComponent() {
     axios.get("http://localhost:5000/api/resumes/history", {
       headers: { Email: `${user.email}` },
     })
-      .then((res) => setJobs(res.data.jobs || []))
+      .then((res) => setJobs(res.data.career || []))
       .catch((err) => console.error("Error fetching job history:", err));
   }, [user]);
 
@@ -88,9 +89,16 @@ export default function CareerComponent() {
               <div className="text-sm text-gray-500 dark:text-gray-400">
                 {job.startDate} – {job.endDate}
               </div>
-              <div className="text-sm text-gray-700 dark:text-gray-300">
+              <div className="text-sm text-gray-700 dark:text-gray-300 mb-2">
                 {job.responsibilities}
               </div>
+              {job.accomplishments?.length ? (
+                <ul className="list-disc list-inside space-y-1 text-sm text-gray-700 dark:text-gray-300">
+                  {job.accomplishments.map((item, i) => (
+                    <li key={i}>{item}</li>
+                  ))}
+                </ul>
+              ) : null}
             </div>
           ))}
         </div>
