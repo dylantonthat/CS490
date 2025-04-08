@@ -1,4 +1,5 @@
 import json
+import re
 import jwt
 from flask_cors import CORS
 import uuid
@@ -100,6 +101,11 @@ Return the merged JSON object:
     temperature=0.3)
 
     merged = response.choices[0].message.content.strip()
+
+    if merged.startswith("```"):
+            merged = re.sub(r"^```[a-zA-Z]*\n?", "", merged)
+            merged = merged.rstrip("```").strip()
+
     return json.loads(merged)
 
 
@@ -165,6 +171,11 @@ Here's the resume text:
         )
 
         content = response.choices[0].message.content.strip()
+
+        if content.startswith("```"):
+            content = re.sub(r"^```[a-zA-Z]*\n?", "", content)
+            content = content.rstrip("```").strip()
+
         parsed = json.loads(content)
         return parsed
 
@@ -241,6 +252,11 @@ Here's the career history text:
 
         content = response.choices[0].message.content.strip()
         # Try parsing it as JSON
+
+        if content.startswith("```"):
+            content = re.sub(r"^```[a-zA-Z]*\n?", "", content)
+            content = content.rstrip("```").strip()
+
         parsed = json.loads(content)
         return parsed
 
@@ -322,6 +338,16 @@ def upload_freeform_career_history():
 # I believe this is different from the freeform history. this is from parsing resumes
 @app.route('/api/resumes/history', methods=['GET'])
 def get_career_history():
+    user_id = request.headers.get('Email', None) #TODO: Add Email to header in frontend
+    print("******USER EMAIL: ", user_id)
+    exist = user_info_collection.find_one({"user_id": user_id})
+
+    if exist:
+        print("****** USER EXISTS: ", exist)
+
+    else:
+        print("****** USER DOES NOT EXIST")
+
     return jsonify({
         'test': 'test'
     }), 200

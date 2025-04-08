@@ -1,5 +1,6 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
+import { useUser } from '@auth0/nextjs-auth0/client';
 
 interface Job {
   id: number;
@@ -16,11 +17,26 @@ export default function CareerTimeline() {
   const [formData, setFormData] = useState<Partial<Job>>({});
   const [message, setMessage] = useState<string | null>(null);
 
+  const [status, setStatus] = useState<string>("");
+  const { user, error, isLoading } = useUser()
+
   useEffect(() => {
-    axios.get("http://localhost:5000/api/resumes/history").then((res) => {
+    if (!user) return;
+    const user_email = user.email;
+    console.log(user_email);
+
+    axios.get("http://localhost:5000/api/resumes/history", {
+      headers: {
+        Email: `${user_email}`,
+      },
+    })
+    .then((res) => {
       setJobs(res.data.jobs || []);
+    })
+    .catch((err) => {
+      console.error("Error fetching job history:", err);
     });
-  }, []);
+  }, [user]);
 
   const handleEditClick = (job: Job) => {
     setEditingJobId(job.id);
