@@ -348,6 +348,9 @@ def get_career_history():
 
     else:
         print("****** USER DOES NOT EXIST")
+        return jsonify({
+            "hiii": "iiii"
+        }), 200
     #TODO: write rest of function. Should take exist and extract all career info, then return it
     return jsonify(user_career), 200
 
@@ -362,6 +365,9 @@ def get_edu_history():
 
     else:
         print("****** USER DOES NOT EXIST")
+        return jsonify({
+            "hiii": "iiii"
+        }), 200
     #TODO: write rest of function. Should take exist and extract all education info, then return it
     return jsonify(user_edu), 200
 
