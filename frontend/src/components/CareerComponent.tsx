@@ -3,6 +3,7 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 
 interface Job {
+  id?: number;
   title: string;
   company: string;
   startDate: string;
@@ -12,7 +13,6 @@ interface Job {
 
 export default function CareerComponent() {
   const [jobs, setJobs] = useState<Job[]>([]);
-  const [editingJobId, setEditingJobId] = useState<number | null>(null);
   const [formData, setFormData] = useState<Partial<Job>>({
     title: "",
     company: "",
@@ -28,8 +28,8 @@ export default function CareerComponent() {
     axios.get("http://localhost:5000/api/resumes/history", {
       headers: { Email: `${user.email}` },
     })
-    .then((res) => setJobs(res.data.jobs || []))
-    .catch((err) => console.error("Error fetching job history:", err));
+      .then((res) => setJobs(res.data.jobs || []))
+      .catch((err) => console.error("Error fetching job history:", err));
   }, [user]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -37,13 +37,7 @@ export default function CareerComponent() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleEditClick = (job: Job, index: number) => {
-    setEditingJobId(index);
-    setFormData(job);
-  };
-
-  const handleCancelClick = () => {
-    setEditingJobId(null);
+  const handleCancel = () => {
     setFormData({
       title: "",
       company: "",
@@ -53,29 +47,18 @@ export default function CareerComponent() {
     });
   };
 
-  const handleSaveClick = async () => {
+  const handleSave = async () => {
     if (!user) return;
     try {
-      if (editingJobId !== null) {
-        await axios.put("http://localhost:5000/api/resumes/history", {
-          index: editingJobId,
-          ...formData,
-        });
-        setJobs((prev) =>
-          prev.map((job, idx) => (idx === editingJobId ? { ...job, ...formData } : job))
-        );
-        setMessage("Job updated successfully.");
-      } else {
-        const res = await axios.post("http://localhost:5000/api/resumes/history", formData, {
-          headers: { Email: `${user.email}` },
-        });
-        setJobs((prev) => [...prev, res.data]);
-        setMessage("New job added.");
-      }
+      const res = await axios.post("http://localhost:5000/api/resumes/history", formData, {
+        headers: { Email: `${user.email}` },
+      });
+      setJobs((prev) => [...prev, res.data]);
+      setMessage("Career entry added successfully.");
+      handleCancel();
     } catch {
-      setMessage("Failed to save job.");
+      setMessage("Failed to add entry.");
     } finally {
-      handleCancelClick();
       setTimeout(() => setMessage(null), 3000);
     }
   };
@@ -90,58 +73,91 @@ export default function CareerComponent() {
         </div>
       )}
 
-      {/* Career Entries */}
+      {/* Career entries */}
       {jobs.length === 0 ? (
         <p className="text-gray-600 dark:text-gray-400">No career history available.</p>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-6 mb-12">
           {jobs.map((job, index) => (
-            <div key={index} className="p-5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
-              {editingJobId === index ? (
-                <div className="space-y-4">
-                  <input type="text" name="title" value={formData.title || ""} onChange={handleChange} placeholder="Title" className="w-full p-2 text-sm border rounded-md text-gray-900 dark:text-white bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700" />
-                  <input type="text" name="company" value={formData.company || ""} onChange={handleChange} placeholder="Company" className="w-full p-2 text-sm border rounded-md text-gray-900 dark:text-white bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700" />
-                  <div className="grid grid-cols-2 gap-4">
-                    <input type="text" name="startDate" value={formData.startDate || ""} onChange={handleChange} placeholder="Start Date" className="w-full p-2 text-sm border rounded-md text-gray-900 dark:text-white bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700" />
-                    <input type="text" name="endDate" value={formData.endDate || ""} onChange={handleChange} placeholder="End Date" className="w-full p-2 text-sm border rounded-md text-gray-900 dark:text-white bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700" />
-                  </div>
-                  <textarea name="responsibilities" value={formData.responsibilities || ""} onChange={handleChange} placeholder="Responsibilities" rows={4} className="w-full p-2 text-sm border rounded-md resize-none text-gray-900 dark:text-white bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700" />
-                  <div className="flex gap-2">
-                    <button onClick={handleSaveClick} className="px-4 py-1 text-sm rounded-full bg-green-600 text-white hover:bg-green-700 transition-all">Save</button>
-                    <button onClick={handleCancelClick} className="px-4 py-1 text-sm rounded-full bg-gray-500 text-white hover:bg-gray-600 transition-all">Cancel</button>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <div className="text-base font-semibold text-gray-800 dark:text-white">
-                    {job.title} <span className="text-gray-500">@ {job.company}</span>
-                  </div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">{job.startDate} – {job.endDate}</div>
-                  <div className="text-sm text-gray-700 dark:text-gray-300">{job.responsibilities}</div>
-                  <button onClick={() => handleEditClick(job, index)} className="mt-2 px-4 py-1 text-sm rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-all">Edit</button>
-                </div>
-              )}
+            <div
+              key={index}
+              className="p-5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg"
+            >
+              <div className="text-base font-semibold text-gray-800 dark:text-white">
+                {job.title} <span className="text-gray-500">@ {job.company}</span>
+              </div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">
+                {job.startDate} – {job.endDate}
+              </div>
+              <div className="text-sm text-gray-700 dark:text-gray-300">
+                {job.responsibilities}
+              </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* Add New Career */}
-      <div className="mt-8 border-t border-gray-200 dark:border-gray-700 pt-6 space-y-4">
+      {/* Add new entry */}
+      <div className="border-t border-gray-200 dark:border-gray-700 pt-6 space-y-4">
         <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
           Add New Career Entry
         </h3>
         <div className="space-y-2">
-          <input type="text" name="title" placeholder="Title" value={editingJobId === null ? formData.title || "" : ""} onChange={handleChange} className="w-full p-2 text-sm border rounded-md text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700" />
-          <input type="text" name="company" placeholder="Company" value={editingJobId === null ? formData.company || "" : ""} onChange={handleChange} className="w-full p-2 text-sm border rounded-md text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700" />
+          <input
+            type="text"
+            name="title"
+            placeholder="Title"
+            value={formData.title || ""}
+            onChange={handleChange}
+            className="w-full p-2 text-sm border rounded-md text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700"
+          />
+          <input
+            type="text"
+            name="company"
+            placeholder="Company"
+            value={formData.company || ""}
+            onChange={handleChange}
+            className="w-full p-2 text-sm border rounded-md text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700"
+          />
           <div className="grid grid-cols-2 gap-4">
-            <input type="text" name="startDate" placeholder="Start Date" value={editingJobId === null ? formData.startDate || "" : ""} onChange={handleChange} className="w-full p-2 text-sm border rounded-md text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700" />
-            <input type="text" name="endDate" placeholder="End Date" value={editingJobId === null ? formData.endDate || "" : ""} onChange={handleChange} className="w-full p-2 text-sm border rounded-md text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700" />
+            <input
+              type="text"
+              name="startDate"
+              placeholder="Start Date"
+              value={formData.startDate || ""}
+              onChange={handleChange}
+              className="w-full p-2 text-sm border rounded-md text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700"
+            />
+            <input
+              type="text"
+              name="endDate"
+              placeholder="End Date"
+              value={formData.endDate || ""}
+              onChange={handleChange}
+              className="w-full p-2 text-sm border rounded-md text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700"
+            />
           </div>
-          <textarea name="responsibilities" placeholder="Responsibilities" rows={4} value={editingJobId === null ? formData.responsibilities || "" : ""} onChange={handleChange} className="w-full p-2 text-sm border rounded-md resize-none text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700" />
+          <textarea
+            name="responsibilities"
+            placeholder="Responsibilities"
+            rows={4}
+            value={formData.responsibilities || ""}
+            onChange={handleChange}
+            className="w-full p-2 text-sm border rounded-md resize-none text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700"
+          />
           <div className="flex gap-2 mt-2">
-            <button onClick={handleSaveClick} className="px-4 py-1 text-sm rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-all">Add</button>
-            <button onClick={handleCancelClick} className="px-4 py-1 text-sm rounded-full bg-gray-500 text-white hover:bg-gray-600 transition-all">Clear</button>
+            <button
+              onClick={handleSave}
+              className="px-4 py-1 text-sm rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-all"
+            >
+              Add
+            </button>
+            <button
+              onClick={handleCancel}
+              className="px-4 py-1 text-sm rounded-full bg-gray-500 text-white hover:bg-gray-600 transition-all"
+            >
+              Clear
+            </button>
           </div>
         </div>
       </div>
