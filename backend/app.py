@@ -294,9 +294,15 @@ def upload_freeform_career_history():
     text = request.json()['text']
     history_id = uuid.uuid4
 
+    print("TEXT RECEIVED:", text) #debugging, remove later
+
     careers_json = ai_freeform(text)
 
+    print("TEXT PARSED:", careers_json) #debugging, remove later
+
     db_store(careers_json)
+
+    print("TEXT STORED!") #debugging, remove later
 
     if text:
         return jsonify({
