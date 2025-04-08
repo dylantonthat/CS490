@@ -339,33 +339,29 @@ def upload_freeform_career_history():
 def get_career_history():
     user_id = request.headers.get('Email', None)
     print("******USER EMAIL: ", user_id)
-    exist = user_info_collection.find_one({"user_id": user_id})
+    user_career = user_info_collection.find_one({"user_id": user_id}, {'career':1, '_id':0})
 
-    if exist:
-        print("****** USER EXISTS: ", exist)
+    if user_career:
+        print("****** USER CAREER EXISTS: ", user_career)
 
     else:
         print("****** USER DOES NOT EXIST")
     #TODO: write rest of function. Should take exist and extract all career info, then return it
-    return jsonify({
-        'test': 'test'
-    }), 200
+    return jsonify(user_career), 200
 
 @app.route('/api/resumes/education', methods=['GET'])
 def get_edu_history():
     user_id = request.headers.get('Email', None)
     print("******USER EMAIL: ", user_id)
-    exist = user_info_collection.find_one({"user_id": user_id})
+    user_edu = user_info_collection.find_one({"user_id": user_id}, {'education':1, '_id':0})
 
-    if exist:
-        print("****** USER EXISTS: ", exist)
+    if user_edu:
+        print("****** USER EDUCATION EXISTS: ", user_edu)
 
     else:
         print("****** USER DOES NOT EXIST")
     #TODO: write rest of function. Should take exist and extract all education info, then return it
-    return jsonify({
-        'test': 'test'
-    }), 200
+    return jsonify(user_edu), 200
 
 @app.route('/api/resumes/history', methods=['PUT'])
 def update_career_history():
