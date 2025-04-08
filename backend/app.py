@@ -127,8 +127,8 @@ Return a JSON object with this structure:
     {{
       "degree": "",
       "institution": "",
-      "start_date": "",
-      "end_date": "",
+      "startDate": "",
+      "endDate": "",
       "gpa": ""
     }}
   ],
@@ -136,8 +136,8 @@ Return a JSON object with this structure:
     {{
       "title": "",
       "company": "",
-      "start_date": "",
-      "end_date": "",
+      "startDate": "",
+      "endDate": "",
       "responsibility": "",
       "accomplishments": ["", ""]
     }}
