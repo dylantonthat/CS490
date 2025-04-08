@@ -206,8 +206,8 @@ Return a JSON object with this structure:
     {{
       "degree": "",
       "institution": "",
-      "start_date": "",
-      "end_date": "",
+      "startDate": "",
+      "endDate": "",
       "gpa": ""
     }}
   ],
@@ -215,8 +215,8 @@ Return a JSON object with this structure:
     {{
       "title": "",
       "company": "",
-      "start_date": "",
-      "end_date": "",
+      "startDate": "",
+      "endDate": "",
       "responsibility": "",
       "accomplishments": ["", ""]
     }}
@@ -363,14 +363,14 @@ def get_edu_history():
     #TODO: write rest of function. Should take exist and extract all education info, then return it
     return jsonify(user_edu), 200
 
-@app.route('/api/resumes/history', methods=['PUT'])
+@app.route('/api/resumes/history:id', methods=['PUT'])
 def update_career_history():
     user_id = request.headers.get('Email', None)
     return jsonify({
         'test': 'test',
     }), 200
 
-@app.route('/api/resumes/education', methods=['PUT'])
+@app.route('/api/resumes/education:id', methods=['PUT'])
 def update_edu():
     user_id = request.headers.get('Email', None)
     return jsonify({
