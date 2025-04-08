@@ -78,6 +78,15 @@ export default function Navbar() {
               <div className="absolute right-0 z-20 mt-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg w-40">
                 <button
                   onClick={() => {
+                    router.push("/home");
+                    setDropdownOpen(false);
+                  }}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
+                >
+                  Home
+                </button>
+                <button
+                  onClick={() => {
                     router.push("/education");
                     setDropdownOpen(false);
                   }}
