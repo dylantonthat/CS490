@@ -137,7 +137,7 @@ Return a JSON object with this structure:
       "company": "",
       "startDate": "",
       "endDate": "",
-      "responsibility": "",
+      "responsibilities": "",
       "accomplishments": ["", ""]
     }}
   ]
@@ -217,7 +217,7 @@ Return a JSON object with this structure:
       "company": "",
       "startDate": "",
       "endDate": "",
-      "responsibility": "",
+      "responsibilities": "",
       "accomplishments": ["", ""]
     }}
   ]
