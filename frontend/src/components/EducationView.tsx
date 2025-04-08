@@ -23,7 +23,7 @@ export default function EducationView() {
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    axios.get("/api/resumes/education").then((res) => {
+    axios.get("http://localhost:5000/api/resumes/education").then((res) => {
       setEducation(res.data.education || []);
     });
   }, []);
@@ -59,11 +59,11 @@ export default function EducationView() {
           ...formData,
           id: education[editingIndex].id,
         } as Education;
-        await axios.put(`/api/resumes/education/${education[editingIndex].id}`, formData);
+        await axios.put(`http://localhost:5000/api/resumes/education/${education[editingIndex].id}`, formData);
         setEducation(updated);
         setMessage("Education updated successfully.");
       } else {
-        const res = await axios.post("/api/resumes/education", formData);
+        const res = await axios.post("http://localhost:5000/api/resumes/education", formData);
         setEducation((prev) => [...prev, res.data]);
         setMessage("Education added successfully.");
       }
@@ -77,7 +77,7 @@ export default function EducationView() {
 
   const handleRemove = async (index: number) => {
     try {
-      await axios.delete(`/api/resumes/education/${education[index].id}`);
+      await axios.delete(`http://localhost:5000/api/resumes/education/${education[index].id}`);
       setEducation((prev) => prev.filter((_, i) => i !== index));
       setMessage("Entry removed.");
     } catch {
