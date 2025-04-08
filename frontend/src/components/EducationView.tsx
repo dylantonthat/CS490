@@ -1,5 +1,6 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
+import { useUser } from '@auth0/nextjs-auth0/client';
 
 interface Education {
   id: number;
@@ -22,11 +23,26 @@ export default function EducationView() {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
+  const [status, setStatus] = useState<string>("");
+  const { user, error, isLoading } = useUser()
+
   useEffect(() => {
-    axios.get("http://localhost:5000/api/resumes/education").then((res) => {
+    if (!user) return;
+    const user_email = user.email;
+    console.log(user_email);
+
+    axios.get("http://localhost:5000/api/resumes/education", {
+      headers: {
+        Email: `${user_email}`,
+      },
+    })
+    .then((res) => {
       setEducation(res.data.education || []);
+    })
+    .catch((err) => {
+      console.error("Error fetching job history:", err);
     });
-  }, []);
+  }, [user]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>

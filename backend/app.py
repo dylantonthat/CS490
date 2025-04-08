@@ -335,37 +335,48 @@ def upload_freeform_career_history():
         'status': 'failed'
     }), 400
 
-# I believe this is different from the freeform history. this is from parsing resumes
 @app.route('/api/resumes/history', methods=['GET'])
 def get_career_history():
-    # user_id = request.headers.get('Email', None) #TODO: Add Email to header in frontend
-    # print("******USER EMAIL: ", user_id)
-    # exist = user_info_collection.find_one({"user_id": user_id})
+    user_id = request.headers.get('Email', None)
+    print("******USER EMAIL: ", user_id)
+    exist = user_info_collection.find_one({"user_id": user_id})
 
-    # if exist:
-    #     print("****** USER EXISTS: ", exist)
+    if exist:
+        print("****** USER EXISTS: ", exist)
 
-    # else:
-    #     print("****** USER DOES NOT EXIST")
-
+    else:
+        print("****** USER DOES NOT EXIST")
+    #TODO: write rest of function. Should take exist and extract all career info, then return it
     return jsonify({
         'test': 'test'
     }), 200
 
 @app.route('/api/resumes/education', methods=['GET'])
 def get_edu_history():
+    user_id = request.headers.get('Email', None)
+    print("******USER EMAIL: ", user_id)
+    exist = user_info_collection.find_one({"user_id": user_id})
+
+    if exist:
+        print("****** USER EXISTS: ", exist)
+
+    else:
+        print("****** USER DOES NOT EXIST")
+    #TODO: write rest of function. Should take exist and extract all education info, then return it
     return jsonify({
         'test': 'test'
     }), 200
 
 @app.route('/api/resumes/history', methods=['PUT'])
 def update_career_history():
+    user_id = request.headers.get('Email', None)
     return jsonify({
         'test': 'test',
     }), 200
 
 @app.route('/api/resumes/education', methods=['PUT'])
 def update_edu():
+    user_id = request.headers.get('Email', None)
     return jsonify({
         'test': 'test',
     }), 200
