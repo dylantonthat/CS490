@@ -338,15 +338,15 @@ def upload_freeform_career_history():
 # I believe this is different from the freeform history. this is from parsing resumes
 @app.route('/api/resumes/history', methods=['GET'])
 def get_career_history():
-    user_id = request.headers.get('Email', None) #TODO: Add Email to header in frontend
-    print("******USER EMAIL: ", user_id)
-    exist = user_info_collection.find_one({"user_id": user_id})
+    # user_id = request.headers.get('Email', None) #TODO: Add Email to header in frontend
+    # print("******USER EMAIL: ", user_id)
+    # exist = user_info_collection.find_one({"user_id": user_id})
 
-    if exist:
-        print("****** USER EXISTS: ", exist)
+    # if exist:
+    #     print("****** USER EXISTS: ", exist)
 
-    else:
-        print("****** USER DOES NOT EXIST")
+    # else:
+    #     print("****** USER DOES NOT EXIST")
 
     return jsonify({
         'test': 'test'
