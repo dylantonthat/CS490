@@ -118,13 +118,12 @@ Do not guess missing values, leave them blank.
 Use the exact parameter names.
 """
 
-    response = client.chat.completions.create(model="gpt-4.0-turbo",
+    response = client.chat.completions.create(model="gpt-4-turbo",
     messages=[
         {"role": "system", "content": "You are a smart resume merging assistant."},
         {"role": "user", "content": prompt}
     ],
-    temperature=0.3,
-    response_format="json")
+    temperature=0.3)
 
     merged = response.choices[0].message.content.strip()
 
@@ -190,13 +189,12 @@ Here's the resume text:
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4.0-turbo",
+            model="gpt-4-turbo",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant that extracts structured data from resumes."},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.2,
-            response_format="json"
+            temperature=0.2
         )
 
         content = response.choices[0].message.content.strip()
@@ -274,13 +272,12 @@ Here's the career history text:
 \"\"\"{text}\"\"\"
 """
     try:
-        response = client.chat.completions.create(model="gpt-4.0-turbo",
+        response = client.chat.completions.create(model="gpt-4-turbo",
         messages=[
             {"role": "system", "content": "You are a helpful assistant that extracts structured career history data from free-form text."},
             {"role": "user", "content": prompt}
         ],
-        temperature=0.2,
-        response_format="json")
+        temperature=0.2)
 
         content = response.choices[0].message.content.strip()
         # Try parsing it as JSON
