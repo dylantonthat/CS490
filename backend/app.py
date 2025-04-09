@@ -4,17 +4,13 @@ from flask_cors import CORS
 import uuid
 from flask import Flask, request, jsonify
 from pymongo import MongoClient
-# from backend.auth import get_token_auth_header, get_rsa_key, AUTH0_DOMAIN, API_AUDIENCE, ALGORITHMS
 import docx2txt
 import tempfile
 import os
 import pdfplumber
 import openai
 
-client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
-
- # SET OPENAI_API_KEY TO OUR API KEY IN OUR ENVIRONMENT (lowk idk how to do this)
+client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY")) #API KEY MUST BE SET IN ENVIRONMENT
 
 ALLOWED_EXTENSIONS = {'docx', 'pdf'}
 
@@ -48,10 +44,6 @@ def parse_pdf(filename):
 
 
 def db_store(new_data):
-    # token = get_token_auth_header()
-    # rsa_key = get_rsa_key(token)
-    # decoded = jwt.decode(token, key=rsa_key, algorithms=ALGORITHMS, audience=API_AUDIENCE, issuer=f"https://{AUTH0_DOMAIN}/")
-    # user_id = decoded.get("sub")
     user_id = request.headers.get('Email', None)
     exist = user_info_collection.find_one({"user_id": user_id})
 
@@ -75,11 +67,14 @@ You are a resume data merging assistant.
 Given two JSON objects representing extracted resume data for the same user, combine them into one unified JSON object.
 
 Merge strategy:
-- Do NOT duplicate entries (e.g., same job title + company)
+- Do NOT duplicate entries (e.g., same job title AND company)
+- If there are two different job titles at the same company, you can keep them as separate, unless the positions seem too similar
+- Similarly, If there are two of the same job titles at different companies, you can also keep them separate
+- You should be able to recognize that two companies are the same even if they have different names. For instance: NJIT and New Jersey Institute of Technology are the same company
 - For overlapping experiences, merge responsibilities and accomplishments
 - Add any unique items from either object
 - Ensure a clean structure with no redundant info
-- For cases where 2 unique items cannot be merged, for instance 2 different phone numbers, chose the one from the new JSON
+- If contact info is different, chose the one from the new JSON file (unless it is blank), since the structure does not have multiple contact info
 
 Existing JSON:
 \"\"\"{existing}\"\"\"
@@ -89,7 +84,38 @@ New JSON:
 \"\"\"{incoming}\"\"\"
 
 
-Return the merged JSON object:
+Return a JSON object with this structure:
+
+{{
+  "contact": {{
+    "name": "",
+    "email": "",
+    "phone": ""
+  }},
+  "education": [
+    {{
+      "degree": "",
+      "institution": "",
+      "startDate": "",
+      "endDate": "",
+      "gpa": ""
+    }}
+  ],
+  "career": [
+    {{
+      "title": "",
+      "company": "",
+      "startDate": "",
+      "endDate": "",
+      "responsibilities": "",
+      "accomplishments": ["", ""]
+    }}
+  ]
+}}
+
+Only include fields you can extract.
+Do not guess missing values, leave them blank.
+Use the exact parameter names.
 """
 
     response = client.chat.completions.create(model="gpt-3.5-turbo",
@@ -154,6 +180,7 @@ Either of these can be blank.
 For example, a responsibility would be: created QA tests for the development team to use.
 An accomplishment would be: cut costs by 25% by implementing a new feature.
 It is up to you to determine what is a feature and what is an accomplishment.
+If none of the sentences under a career seems like the main responsibility, then leave responsibility blank and put them all in accomplishments as a list.
 
 Here's the resume text:
 
@@ -238,6 +265,7 @@ Either of these can be blank.
 For example, a responsibility would be: created QA tests for the development team to use.
 An accomplishment would be: cut costs by 25% by implementing a new feature.
 It is up to you to determine what is a feature and what is an accomplishment.
+If none of the sentences under a career seems like the main responsibility, then leave responsibility blank and put them all in accomplishments as a list.
 
 Here's the career history text:
 
@@ -277,7 +305,7 @@ def hello():
 
 @app.route('/api/resumes/upload', methods=['POST'])
 def upload_resume():
-    print("FILE RECEIVED:", request.files) #debugging, remove later
+    print("FILE RECEIVED:", request.files) #debugging
     if 'file' not in request.files:
         return jsonify({"error": "No file part"}), 400
 
@@ -289,16 +317,16 @@ def upload_resume():
     if file and file_ext.lower() in ALLOWED_EXTENSIONS:
         if file_ext.lower() == 'docx':
             resume_text = parse_docx(file)
-            print("FILE IS A DOCX", file_ext) #debugging, remove later
+            print("FILE IS A DOCX", file_ext) #debugging
         else:
             resume_text = parse_pdf(file)
-            print("FILE IS A PDF", file_ext) #debugging, remove later
+            print("FILE IS A PDF", file_ext) #debugging
 
         resume_json = ai_parser(resume_text)
-        print("FILE PARSED:", resume_json) #debugging, remove later
+        print("FILE PARSED:", resume_json) #debugging
 
         db_store(resume_json)
-        print("FILE STORED!") #debugging, remove later
+        print("FILE STORED!") #debugging
 
         return jsonify({
             'resumeId': resume_id,
@@ -315,15 +343,15 @@ def upload_freeform_career_history():
     text = request.json['text']
     history_id = str(uuid.uuid4())
 
-    print("TEXT RECEIVED:", text) #debugging, remove later
+    print("TEXT RECEIVED:", text) #debugging
 
     careers_json = ai_freeform(text)
 
-    print("TEXT PARSED:", careers_json) #debugging, remove later
+    print("TEXT PARSED:", careers_json) #debugging
 
     db_store(careers_json)
 
-    print("TEXT STORED!") #debugging, remove later
+    print("TEXT STORED!") #debugging
 
     if text:
         return jsonify({
