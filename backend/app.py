@@ -123,7 +123,8 @@ Use the exact parameter names.
         {"role": "system", "content": "You are a smart resume merging assistant."},
         {"role": "user", "content": prompt}
     ],
-    temperature=0.3)
+    temperature=0.3,
+    response_format="json")
 
     merged = response.choices[0].message.content.strip()
 
@@ -194,7 +195,8 @@ Here's the resume text:
                 {"role": "system", "content": "You are a helpful assistant that extracts structured data from resumes."},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.2
+            temperature=0.2,
+            response_format="json"
         )
 
         content = response.choices[0].message.content.strip()
@@ -277,7 +279,8 @@ Here's the career history text:
             {"role": "system", "content": "You are a helpful assistant that extracts structured career history data from free-form text."},
             {"role": "user", "content": prompt}
         ],
-        temperature=0.2)
+        temperature=0.2,
+        response_format="json")
 
         content = response.choices[0].message.content.strip()
         # Try parsing it as JSON
