@@ -1,17 +1,25 @@
 import axios from "axios";
 import { useState } from "react";
+import { useUser } from '@auth0/nextjs-auth0/client';
 
 export default function CareerForm() {
   const [entry, setEntry] = useState("");
   const [status, setStatus] = useState("");
+  const { user, error, isLoading } = useUser()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!entry.trim()) return;
+    if (!user) return;
 
+    const user_email = user.email;
     try {
       setStatus("Submitting...");
-      await axios.post("http://localhost:5000/api/resumes/history", { text: entry });
+      await axios.post("http://localhost:5000/api/resumes/history", { text: entry }, {
+        headers: {
+          Email: `${user_email}`,
+        }
+      });
       setStatus("Entry saved");
       setEntry("");
     } catch {

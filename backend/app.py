@@ -1,5 +1,5 @@
 import json
-import jwt
+import re
 from flask_cors import CORS
 import uuid
 from flask import Flask, request, jsonify
@@ -82,10 +82,12 @@ Merge strategy:
 - For cases where 2 unique items cannot be merged, for instance 2 different phone numbers, chose the one from the new JSON
 
 Existing JSON:
-{json.dumps(existing, indent=2)}
+\"\"\"{existing}\"\"\"
+
 
 New JSON:
-{json.dumps(incoming, indent=2)}
+\"\"\"{incoming}\"\"\"
+
 
 Return the merged JSON object:
 """
@@ -98,6 +100,11 @@ Return the merged JSON object:
     temperature=0.3)
 
     merged = response.choices[0].message.content.strip()
+
+    if merged.startswith("```"):
+            merged = re.sub(r"^```[a-zA-Z]*\n?", "", merged)
+            merged = merged.rstrip("```").strip()
+
     return json.loads(merged)
 
 
@@ -119,8 +126,8 @@ Return a JSON object with this structure:
     {{
       "degree": "",
       "institution": "",
-      "start_date": "",
-      "end_date": "",
+      "startDate": "",
+      "endDate": "",
       "gpa": ""
     }}
   ],
@@ -128,9 +135,9 @@ Return a JSON object with this structure:
     {{
       "title": "",
       "company": "",
-      "start_date": "",
-      "end_date": "",
-      "responsibility": "",
+      "startDate": "",
+      "endDate": "",
+      "responsibilities": "",
       "accomplishments": ["", ""]
     }}
   ]
@@ -138,6 +145,7 @@ Return a JSON object with this structure:
 
 Only include fields you can extract.
 Do not guess missing values, leave them blank.
+Use the exact parameter names.
 
 It is important to distinguish responsibility and accomplishments for each career.
 The responsibility should be their main job description for that task, there should only be one.
@@ -163,6 +171,11 @@ Here's the resume text:
         )
 
         content = response.choices[0].message.content.strip()
+
+        if content.startswith("```"):
+            content = re.sub(r"^```[a-zA-Z]*\n?", "", content)
+            content = content.rstrip("```").strip()
+
         parsed = json.loads(content)
         return parsed
 
@@ -193,8 +206,8 @@ Return a JSON object with this structure:
     {{
       "degree": "",
       "institution": "",
-      "start_date": "",
-      "end_date": "",
+      "startDate": "",
+      "endDate": "",
       "gpa": ""
     }}
   ],
@@ -202,9 +215,9 @@ Return a JSON object with this structure:
     {{
       "title": "",
       "company": "",
-      "start_date": "",
-      "end_date": "",
-      "responsibility": "",
+      "startDate": "",
+      "endDate": "",
+      "responsibilities": "",
       "accomplishments": ["", ""]
     }}
   ]
@@ -214,6 +227,7 @@ Since we are extracting only career history, all fields under contact and educat
 It must be formatted like this to be used in future steps involving resumes.
 Only include fields you can extract.
 Do not guess missing values, leave them blank.
+Use the exact parameter names.
 
 The career history text can have multiple instances of careers. Each should be stored as a list following the JSON format.
 
@@ -239,6 +253,11 @@ Here's the career history text:
 
         content = response.choices[0].message.content.strip()
         # Try parsing it as JSON
+
+        if content.startswith("```"):
+            content = re.sub(r"^```[a-zA-Z]*\n?", "", content)
+            content = content.rstrip("```").strip()
+
         parsed = json.loads(content)
         return parsed
 
@@ -294,7 +313,7 @@ def upload_resume():
 @app.route('/api/resumes/history', methods=['POST'])
 def upload_freeform_career_history():
     text = request.json['text']
-    history_id = uuid.uuid4
+    history_id = str(uuid.uuid4())
 
     print("TEXT RECEIVED:", text) #debugging, remove later
 
@@ -317,27 +336,50 @@ def upload_freeform_career_history():
         'status': 'failed'
     }), 400
 
-# I believe this is different from the freeform history. this is from parsing resumes
 @app.route('/api/resumes/history', methods=['GET'])
 def get_career_history():
-    return jsonify({
-        'test': 'test'
-    }), 200
+    user_id = request.headers.get('Email', None)
+    print("******USER EMAIL: ", user_id)
+    user_career = user_info_collection.find_one({"user_id": user_id}, {'career':1, '_id':0})
+
+    if user_career:
+        print("****** USER CAREER EXISTS: ", user_career)
+
+    else:
+        print("****** USER DOES NOT EXIST")
+        return jsonify({
+            "hiii": "iiii"
+        }), 200
+    #TODO: write rest of function. Should take exist and extract all career info, then return it
+    return jsonify(user_career), 200
 
 @app.route('/api/resumes/education', methods=['GET'])
 def get_edu_history():
-    return jsonify({
-        'test': 'test'
-    }), 200
+    user_id = request.headers.get('Email', None)
+    print("******USER EMAIL: ", user_id)
+    user_edu = user_info_collection.find_one({"user_id": user_id}, {'education':1, '_id':0})
 
-@app.route('/api/resumes/history', methods=['PUT'])
+    if user_edu:
+        print("****** USER EDUCATION EXISTS: ", user_edu)
+
+    else:
+        print("****** USER DOES NOT EXIST")
+        return jsonify({
+            "hiii": "iiii"
+        }), 200
+    #TODO: write rest of function. Should take exist and extract all education info, then return it
+    return jsonify(user_edu), 200
+
+@app.route('/api/resumes/history:id', methods=['PUT'])
 def update_career_history():
+    user_id = request.headers.get('Email', None)
     return jsonify({
         'test': 'test',
     }), 200
 
-@app.route('/api/resumes/education', methods=['PUT'])
+@app.route('/api/resumes/education:id', methods=['PUT'])
 def update_edu():
+    user_id = request.headers.get('Email', None)
     return jsonify({
         'test': 'test',
     }), 200
