@@ -118,7 +118,7 @@ Do not guess missing values, leave them blank.
 Use the exact parameter names.
 """
 
-    response = client.chat.completions.create(model="gpt-3.5-turbo",
+    response = client.chat.completions.create(model="gpt-4.0-turbo",
     messages=[
         {"role": "system", "content": "You are a smart resume merging assistant."},
         {"role": "user", "content": prompt}
@@ -189,7 +189,7 @@ Here's the resume text:
 
     try:
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4.0-turbo",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant that extracts structured data from resumes."},
                 {"role": "user", "content": prompt}
@@ -272,7 +272,7 @@ Here's the career history text:
 \"\"\"{text}\"\"\"
 """
     try:
-        response = client.chat.completions.create(model="gpt-3.5-turbo",  # or gpt-4 ??? idk i think 3.5 is free but if it sucks i dont mind paying
+        response = client.chat.completions.create(model="gpt-4.0-turbo",
         messages=[
             {"role": "system", "content": "You are a helpful assistant that extracts structured career history data from free-form text."},
             {"role": "user", "content": prompt}
