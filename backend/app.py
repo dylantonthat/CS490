@@ -308,7 +308,75 @@ Here's the career history text:
         print("OpenAI API error:", e)
         return None
 
+def ai_skills(text): #might need to be changed if using a form instead
+    prompt = f"""
+You are an intelligent parser for resumes. 
+Given the raw text of different skills, extract the following structured information in JSON format.
 
+Return a JSON object with this structure:
+
+{{
+  "contact": {{
+    "name": "",
+    "email": "",
+    "phone": ""
+  }},
+  "education": [
+    {{
+      "degree": "",
+      "institution": "",
+      "startDate": "",
+      "endDate": "",
+      "gpa": ""
+    }}
+  ],
+  "career": [
+    {{
+      "title": "",
+      "company": "",
+      "startDate": "",
+      "endDate": "",
+      "responsibilities": "",
+      "accomplishments": ["", ""]
+    }}
+  ],
+  "skills": ["", ""]
+}}
+
+Since we are extracting only skills, all fields under contact, education, and career must be left blank.
+It must be formatted like this to be used in future steps involving resumes.
+Only include fields you can extract.
+Use the exact parameter names.
+
+Here's the freeform skills text:
+
+\"\"\"{text}\"\"\"
+"""
+    try:
+        response = client.chat.completions.create(model="gpt-4o",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant that extracts skills from free-form text."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.2)
+
+        content = response.choices[0].message.content.strip()
+        # Try parsing it as JSON
+
+        if content.startswith("```"):
+            content = re.sub(r"^```[a-zA-Z]*\n?", "", content)
+            content = content.rstrip("```").strip()
+
+        parsed = json.loads(content)
+        return parsed
+
+    except json.JSONDecodeError as e:
+        print("Failed to parse JSON:", e)
+        print("Raw content:", content)
+        return None
+    except Exception as e:
+        print("OpenAI API error:", e)
+        return None
 
 @app.route('/')
 def hello():
@@ -516,15 +584,33 @@ def update_contact_info():
         'test': 'test',
     }), 200
 
-#SPRINT 3 STRETCH: ADD LIST OF SKILLS TO RESUME FORMAT (separate from career history and education, also ensure no duplicates)
-
 #TODO:
-@app.route('/api/resumes/skills', methods=['POST']) #SPRINT 3 STRETCH (can be free form entry like career, or a form, should also check against duplicates)
+@app.route('/api/resumes/skills', methods=['POST']) #SPRINT 3 STRETCH (should be free form like career history)
 def upload_skills():
-    user_id = request.headers.get('Email', None)
+    text = request.json['text']
+    skills_id = str(uuid.uuid4())
+
+    print("TEXT RECEIVED:", text) #debugging
+
+    skills_json = ai_skills(text)
+
+    print("TEXT PARSED:", skills_json) #debugging
+
+    db_store(skills_json)
+
+    print("TEXT STORED!") #debugging
+
+    if text:
+        return jsonify({
+            'skillsId': skills_id,
+            'status': 'saved'
+        }), 200
+
     return jsonify({
-        'test': 'test',
-    }), 200
+        'error': 'Empty text',
+        'status': 'failed'
+    }), 400
+
 
 #TODO:
 @app.route('/api/resumes/skills', methods=['GET']) #SPRINT 3 STRETCH
