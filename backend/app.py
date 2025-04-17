@@ -661,13 +661,21 @@ def upload_skills():
     }), 400
 
 
-#TODO:
-@app.route('/api/resumes/skills', methods=['GET']) #SPRINT 3 STRETCH
+@app.route('/api/resumes/skills', methods=['GET'])
 def get_skills():
     user_id = request.headers.get('Email', None)
-    return jsonify({
-        'test': 'test',
-    }), 200
+    print("******USER EMAIL: ", user_id)
+    user_skills = user_info_collection.find_one({"user_id": user_id}, {'skills':1, '_id':0})
+
+    if user_skills:
+        print("****** USER SKILLS EXISTS: ", user_skills)
+
+    else:
+        print("****** USER DOES NOT EXIST")
+        return jsonify({
+            "hiii": "iiii"
+        }), 200
+    return jsonify(user_skills), 200
 
 @app.route('/api/resumes/upload', methods=['GET'])
 def view_resumes():
