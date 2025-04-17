@@ -412,5 +412,87 @@ def update_edu():
         'test': 'test',
     }), 200
 
+# SPRINT 3 APIS BELOW
+@app.route('/api/jobs/submit', methods=['POST'])
+def upload_job_desc():
+    user_id = request.headers.get('Email', None)
+    return jsonify({
+        'test': 'test',
+    }), 200
+
+@app.route('/api/jobs/history', methods=['GET']) #STRETCH
+def get_job_desc():
+    user_id = request.headers.get('Email', None)
+    return jsonify({
+        'test': 'test',
+    }), 200
+
+@app.route('/api/resumes/generate', methods=['POST'])
+def generate_resume():
+    user_id = request.headers.get('Email', None)
+    return jsonify({
+        'test': 'test',
+    }), 200
+
+@app.route('/api/resumes/status:resumeId', methods=['GET'])
+def get_resume_status():
+    user_id = request.headers.get('Email', None)
+    return jsonify({
+        'test': 'test',
+    }), 200
+
+@app.route('/api/resumes/contact', methods=['GET']) #STRETCH
+def view_contact_info():
+    user_id = request.headers.get('Email', None)
+    return jsonify({
+        'test': 'test',
+    }), 200
+
+@app.route('/api/resumes/contact:id', methods=['PUT']) #STRETCH
+def update_contact_info():
+    user_id = request.headers.get('Email', None)
+    return jsonify({
+        'test': 'test',
+    }), 200
+
+#STRETCH: ADD LIST OF SKILLS TO RESUME FORMAT (separate from career history and education, also ensure no duplicates)
+
+@app.route('/api/resumes/skills', methods=['POST']) #STRETCH (can be free form entry like career, or a form, should also check against duplicates)
+def upload_skills():
+    user_id = request.headers.get('Email', None)
+    return jsonify({
+        'test': 'test',
+    }), 200
+
+@app.route('/api/resumes/skills', methods=['GET']) #STRETCH
+def get_skills():
+    user_id = request.headers.get('Email', None)
+    return jsonify({
+        'test': 'test',
+    }), 200
+
+@app.route('/api/resumes/upload', methods=['GET']) #STRETCH (need to change our POST method to also save resumes to database)
+def update_contact_info():
+    user_id = request.headers.get('Email', None)
+    return jsonify({
+        'test': 'test',
+    }), 200
+
+#ok so these last two make no sense because we already have a GET and PUT /api/resumes/history but he also wants us to view and edit the freeform text?
+@app.route('/api/resumes/freeform', methods=['GET']) #STRETCH (need to change our POST method to also save freeform text to database)
+def get_freeform():
+    user_id = request.headers.get('Email', None)
+    return jsonify({
+        'test': 'test',
+    }), 200
+
+@app.route('/api/resumes/freeform:id', methods=['PUT']) #STRETCH (also make sure that when you edit a freeform entry it re-posts it so it shows up)
+def update_freeform():
+    user_id = request.headers.get('Email', None)
+    return jsonify({
+        'test': 'test',
+    }), 200
+
+
 if __name__ == '__main__':
     app.run(debug=True)
