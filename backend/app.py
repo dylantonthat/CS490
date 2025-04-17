@@ -18,6 +18,9 @@ ALLOWED_EXTENSIONS = {'docx', 'pdf'}
 clientDB = MongoClient("mongodb+srv://kdv:fp4ZIfpKYM3zghYX@kdv-cluster.wn6dsp1.mongodb.net/?retryWrites=true&w=majority&appName=kdv-cluster")
 db = clientDB['cs490_project']
 user_info_collection = db['user_info']
+user_resume_collection = db['resume']
+user_freeform_collection = db['freeform']
+user_job_desc_collection = db['job_desc']
 
 app = Flask(__name__)
 CORS(app, origins=["http://localhost:3000"])
@@ -379,7 +382,6 @@ def get_career_history():
         return jsonify({
             "hiii": "iiii"
         }), 200
-    #TODO: write rest of function. Should take exist and extract all career info, then return it
     return jsonify(user_career), 200
 
 @app.route('/api/resumes/education', methods=['GET'])
@@ -396,17 +398,18 @@ def get_edu_history():
         return jsonify({
             "hiii": "iiii"
         }), 200
-    #TODO: write rest of function. Should take exist and extract all education info, then return it
     return jsonify(user_edu), 200
 
-@app.route('/api/resumes/history:id', methods=['PUT'])
+#TODO:
+@app.route('/api/resumes/history:id', methods=['PUT']) #SPRINT 2 STRETCH
 def update_career_history():
     user_id = request.headers.get('Email', None)
     return jsonify({
         'test': 'test',
     }), 200
 
-@app.route('/api/resumes/education:id', methods=['PUT'])
+#TODO:
+@app.route('/api/resumes/education:id', methods=['PUT']) #SPRINT 2 STRETCH
 def update_edu():
     user_id = request.headers.get('Email', None)
     return jsonify({
@@ -415,7 +418,7 @@ def update_edu():
 
 # SPRINT 3 APIS BELOW
 #TODO:
-@app.route('/api/jobs/submit', methods=['POST'])
+@app.route('/api/jobs/submit', methods=['POST']) #SPRINT 3 CORE
 def upload_job_desc():
     user_id = request.headers.get('Email', None)
     return jsonify({
@@ -423,7 +426,7 @@ def upload_job_desc():
     }), 200
 
 #TODO:
-@app.route('/api/jobs/history', methods=['GET']) #STRETCH
+@app.route('/api/jobs/history', methods=['GET']) #SPRINT 3 STRETCH
 def get_job_desc():
     user_id = request.headers.get('Email', None)
     return jsonify({
@@ -431,7 +434,7 @@ def get_job_desc():
     }), 200
 
 #TODO:
-@app.route('/api/resumes/generate', methods=['POST'])
+@app.route('/api/resumes/generate', methods=['POST']) #SPRINT 3 CORE
 def generate_resume():
     user_id = request.headers.get('Email', None)
     return jsonify({
@@ -439,7 +442,7 @@ def generate_resume():
     }), 200
 
 #TODO:
-@app.route('/api/resumes/status:resumeId', methods=['GET'])
+@app.route('/api/resumes/status:resumeId', methods=['GET']) #SPRINT 3 CORE
 def get_resume_status():
     user_id = request.headers.get('Email', None)
     return jsonify({
@@ -447,7 +450,7 @@ def get_resume_status():
     }), 200
 
 #TODO:
-@app.route('/api/resumes/contact', methods=['GET']) #STRETCH
+@app.route('/api/resumes/contact', methods=['GET']) #SPRINT 3 STRETCH
 def view_contact_info():
     user_id = request.headers.get('Email', None)
     return jsonify({
@@ -455,17 +458,17 @@ def view_contact_info():
     }), 200
 
 #TODO:
-@app.route('/api/resumes/contact:id', methods=['PUT']) #STRETCH
+@app.route('/api/resumes/contact:id', methods=['PUT']) #SPRINT 3 STRETCH
 def update_contact_info():
     user_id = request.headers.get('Email', None)
     return jsonify({
         'test': 'test',
     }), 200
 
-#STRETCH: ADD LIST OF SKILLS TO RESUME FORMAT (separate from career history and education, also ensure no duplicates)
+#SPRINT 3 STRETCH: ADD LIST OF SKILLS TO RESUME FORMAT (separate from career history and education, also ensure no duplicates)
 
 #TODO:
-@app.route('/api/resumes/skills', methods=['POST']) #STRETCH (can be free form entry like career, or a form, should also check against duplicates)
+@app.route('/api/resumes/skills', methods=['POST']) #SPRINT 3 STRETCH (can be free form entry like career, or a form, should also check against duplicates)
 def upload_skills():
     user_id = request.headers.get('Email', None)
     return jsonify({
@@ -473,7 +476,7 @@ def upload_skills():
     }), 200
 
 #TODO:
-@app.route('/api/resumes/skills', methods=['GET']) #STRETCH
+@app.route('/api/resumes/skills', methods=['GET']) #SPRINT 3 STRETCH
 def get_skills():
     user_id = request.headers.get('Email', None)
     return jsonify({
@@ -481,7 +484,7 @@ def get_skills():
     }), 200
 
 #TODO:
-@app.route('/api/resumes/upload', methods=['GET']) #STRETCH (need to change our POST method to also save resumes to database)
+@app.route('/api/resumes/upload', methods=['GET']) #SPRINT 3 STRETCH (need to change our POST method to also save resumes to database)
 def view_resumes():
     user_id = request.headers.get('Email', None)
     return jsonify({
@@ -490,7 +493,7 @@ def view_resumes():
 
 #ok so these last two make no sense because we already have a GET and PUT /api/resumes/history but he also wants us to view and edit the freeform text?
 #TODO:
-@app.route('/api/resumes/freeform', methods=['GET']) #STRETCH (need to change our POST method to also save freeform text to database)
+@app.route('/api/resumes/freeform', methods=['GET']) #SPRINT 3 STRETCH (need to change our POST method to also save freeform text to database)
 def get_freeform():
     user_id = request.headers.get('Email', None)
     return jsonify({
@@ -498,14 +501,14 @@ def get_freeform():
     }), 200
 
 #TODO:
-@app.route('/api/resumes/freeform:id', methods=['PUT']) #STRETCH (also make sure that when you edit a freeform entry it re-posts it so it shows up)
+@app.route('/api/resumes/freeform:id', methods=['PUT']) #SPRINT 3 STRETCH (also make sure that when you edit a freeform entry it re-posts it so it shows up)
 def update_freeform():
     user_id = request.headers.get('Email', None)
     return jsonify({
         'test': 'test',
     }), 200
 
-@app.route('/api/test/db', methods=['GET']) #FOR TESTING/DEBUGGING PURPOSES ONLY, SHOULD NOT BE ACCESSIBLE THRU FRONT END
+@app.route('/api/testdb/userinfo', methods=['GET']) #FOR TESTING/DEBUGGING PURPOSES ONLY, SHOULD NOT BE ACCESSIBLE THRU FRONT END
 def get_all_users():
     users = user_info_collection.find()  # Returns a cursor of all documents
     return dumps(users), 200  # dumps handles ObjectId and other BSON types
