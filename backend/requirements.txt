@@ -5,3 +5,4 @@ pyjwt
 pdfplumber
 pymongo
 openai
+gridfs

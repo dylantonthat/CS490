@@ -41,6 +41,7 @@
    ```sh
    export OPENAI_API_KEY=(put openai api key here)
    pip install -r requirements.txt
+   sudo apt install -y libreoffice # Needed for docx files
    ```
 4. Start the Flask server:
    ```sh

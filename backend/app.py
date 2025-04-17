@@ -2,13 +2,16 @@ import json
 import re
 from flask_cors import CORS
 import uuid
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response
 from pymongo import MongoClient
 import docx2txt
 import tempfile
 import os
 import pdfplumber
 import openai
+import gridfs
+import tempfile
+import subprocess
 from bson.json_util import dumps
 from datetime import datetime, timezone
 
@@ -18,6 +21,7 @@ ALLOWED_EXTENSIONS = {'docx', 'pdf'}
 
 clientDB = MongoClient("mongodb+srv://kdv:fp4ZIfpKYM3zghYX@kdv-cluster.wn6dsp1.mongodb.net/?retryWrites=true&w=majority&appName=kdv-cluster")
 db = clientDB['cs490_project']
+fs = gridfs.GridFS(db)
 user_info_collection = db['user_info']
 user_resume_collection = db['resumes']
 user_freeform_collection = db['freeform']
@@ -384,6 +388,10 @@ def hello():
 
 @app.route('/api/resumes/upload', methods=['POST'])
 def upload_resume():
+    user_id = request.headers.get('Email', None)
+    if not user_id:
+        return jsonify({"error": "Missing user ID"}), 400
+    
     print("FILE RECEIVED:", request.files) #debugging
     if 'file' not in request.files:
         return jsonify({"error": "No file part"}), 400
@@ -391,9 +399,8 @@ def upload_resume():
     file = request.files['file']
     resume_id = str(uuid.uuid4())
 
-    #TODO: SPRINT 3 STRETCH: save resume to user_resume_collection under email and resume_id
-
-    file_name, file_ext = file.filename.rsplit('.', 1)
+    file_name = file.filename
+    file_ext = file_name.rsplit('.', 1)[-1].lower()
    
     
     if file and file_ext.lower() in ALLOWED_EXTENSIONS:
@@ -403,6 +410,49 @@ def upload_resume():
         else:
             resume_text = parse_pdf(file)
             print("FILE IS A PDF", file_ext) #debugging
+
+
+
+        #file_id = fs.put(file, filename=file_name, content_type=file.content_type)
+        timestamp = datetime.now(timezone.utc)
+
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            input_path = os.path.join(temp_dir, file_name)
+            file.save(input_path)
+
+            if file_ext == 'docx':
+                try:
+                    subprocess.run([
+                        'libreoffice',
+                        '--headless',
+                        '--convert-to',
+                        'pdf',
+                        '--outdir',
+                        temp_dir,
+                        input_path
+                    ], check=True)
+
+                    converted_pdf = input_path.rsplit('.', 1)[0] + '.pdf'
+                    with open(converted_pdf, 'rb') as pdf_file:
+                        file_id = fs.put(pdf_file, filename=f"{file_name}.pdf", content_type='application/pdf')
+
+                except subprocess.CalledProcessError as e:
+                    return jsonify({"error": "Failed to convert docx to PDF"}), 500
+            else:
+                file.seek(0)
+                file_id = fs.put(file, filename=file_name, content_type='application/pdf')
+
+
+
+        user_resume_collection.insert_one({
+            'resume_id': resume_id,
+            'user_id': user_id,
+            'file_id': file_id,
+            'filename': file_name,
+            'content_type': file_name if file_ext == 'pdf' else f"{file_name}.pdf",
+            'timestamp': timestamp
+        })
 
         resume_json = ai_parser(resume_text)
         print("FILE PARSED:", resume_json) #debugging
@@ -619,13 +669,54 @@ def get_skills():
         'test': 'test',
     }), 200
 
-#TODO:
-@app.route('/api/resumes/upload', methods=['GET']) #SPRINT 3 STRETCH (need to change our POST method to also save resumes to database)
+@app.route('/api/resumes/upload', methods=['GET'])
 def view_resumes():
     user_id = request.headers.get('Email', None)
-    return jsonify({
-        'test': 'test',
-    }), 200
+    if not user_id:
+        return jsonify({'error': 'Missing Email header'}), 400
+
+    resumes = user_resume_collection.find({'user_id': user_id}).sort('timestamp', -1)
+
+    resume_list = []
+    for res in resumes:
+        resume_list.append({
+            'resumeId': res.get('resume_id'),
+            'filename': res.get('filename'),
+            'contentType': res.get('content_type'),
+            'uploadedAt': res.get('timestamp').isoformat().replace('+00:00', 'Z')
+        })
+
+    return jsonify({'resumes': resume_list}), 200
+
+@app.route('/api/resumes/view/<resume_id>', methods=['GET'])
+def view_resume_file(resume_id):
+    resume_meta = user_resume_collection.find_one({'resume_id': resume_id})
+    if not resume_meta:
+        return jsonify({'error': 'Resume not found'}), 404
+
+    file_id = resume_meta.get('file_id')
+    if not file_id:
+        return jsonify({'error': 'File ID missing'}), 500
+
+    try:
+        file_data = fs.get(file_id)
+    except gridfs.errors.NoFile:
+        return jsonify({'error': 'File not found in GridFS'}), 404
+
+    return Response(
+        file_data.read(),
+        mimetype=resume_meta.get('content_type'),
+        headers={
+            "Content-Disposition": f"inline; filename={resume_meta.get('filename')}"
+        }
+    )
+#To view in frontend: (Have not tested, should hopefully work)
+# <iframe
+#   src={`http://localhost:5000/api/resumes/view/${resumeId}`}
+#   width="100%"
+#   height="600px"
+#   style={{ border: 'none' }}
+# />
 
 #ok so these last two make no sense because we already have a GET and PUT /api/resumes/history but he also wants us to view and edit the freeform text?
 #TODO:
