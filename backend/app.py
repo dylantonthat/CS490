@@ -584,8 +584,7 @@ def update_contact_info():
         'test': 'test',
     }), 200
 
-#TODO:
-@app.route('/api/resumes/skills', methods=['POST']) #SPRINT 3 STRETCH (should be free form like career history)
+@app.route('/api/resumes/skills', methods=['POST']) #(should be free form like career history)
 def upload_skills():
     text = request.json['text']
     skills_id = str(uuid.uuid4())
