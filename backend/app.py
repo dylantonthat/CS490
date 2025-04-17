@@ -76,10 +76,12 @@ Merge strategy:
 - If there are two different job titles at the same company, you can keep them as separate, unless the positions seem too similar
 - Similarly, If there are two of the same job titles at different companies, you can also keep them separate
 - You should be able to recognize that two companies are the same even if they have different names. For instance: NJIT and New Jersey Institute of Technology are the same company
+- Similarly, you should be able to recognize two skills are the same, like "js" and "javascript". The merged JSON object must only contain one of these.
 - For overlapping experiences, merge responsibilities and accomplishments
 - Add any unique items from either object
 - Ensure a clean structure with no redundant info
 - If contact info is different, chose the one from the new JSON file (unless it is blank), since the structure does not have multiple contact info
+- Similarly, if an overlapping experience has a different responsibility listed, go with the new one. If there are 2 accomplishments under an overlapping experience that are too similar, then go with the new accomplishment.
 
 Existing JSON:
 \"\"\"{existing}\"\"\"
@@ -115,7 +117,8 @@ Return a JSON object with this structure:
       "responsibilities": "",
       "accomplishments": ["", ""]
     }}
-  ]
+  ],
+  "skills": ["", ""]
 }}
 
 Only include fields you can extract.
@@ -140,7 +143,7 @@ Use the exact parameter names.
 
 
 
-def ai_parser(text): #TODO: SPRINT 3 STRETCH: add skills as another option to parse (need to change other ai prompts as well)
+def ai_parser(text):
     prompt = f"""
 You are an intelligent parser for resumes. 
 Given the raw text of a resume, extract the following structured information in JSON format.
@@ -171,7 +174,8 @@ Return a JSON object with this structure:
       "responsibilities": "",
       "accomplishments": ["", ""]
     }}
-  ]
+  ],
+  "skills": ["", ""]
 }}
 
 Only include fields you can extract.
@@ -252,10 +256,12 @@ Return a JSON object with this structure:
       "responsibilities": "",
       "accomplishments": ["", ""]
     }}
-  ]
+  ],
+  "skills": ["", ""]
 }}
 
 Since we are extracting only career history, all fields under contact and education must be left blank.
+You can also extract skills from the freeform text and store them in skills (ex. Python, Javascript). However if there are no notable skills you can leave it blank.
 It must be formatted like this to be used in future steps involving resumes.
 Only include fields you can extract.
 Do not guess missing values, leave them blank.
