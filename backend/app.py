@@ -10,6 +10,7 @@ import os
 import pdfplumber
 import openai
 from bson.json_util import dumps
+from datetime import datetime, timezone
 
 client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY")) #API KEY MUST BE SET IN ENVIRONMENT
 
@@ -422,21 +423,60 @@ def update_edu():
     }), 200
 
 # SPRINT 3 APIS BELOW
-#TODO:
-@app.route('/api/jobs/submit', methods=['POST']) #SPRINT 3 CORE
+@app.route('/api/jobs/submit', methods=['POST'])
 def upload_job_desc():
     user_id = request.headers.get('Email', None)
+    if not user_id:
+        return jsonify({
+            'error': 'Missing Email header',
+            'status': 'failed'
+        }), 400
+
+    text = request.json['text']
+    job_id = str(uuid.uuid4())
+    if not text:
+        return jsonify({
+            'error': 'Empty text',
+            'status': 'failed'
+        }), 400
+
+    new_job = {
+        'job_id': job_id,
+        'text': text,
+        'timestamp': datetime.now(timezone.utc)
+    }
+
+    result = user_job_desc_collection.update_one(
+        {'user_id': user_id},
+        {'$push': {'jobs': new_job}},
+        upsert=True
+    )
+
     return jsonify({
-        'test': 'test',
+        'jobId': job_id,
+        'status': 'saved'
     }), 200
 
-#TODO:
-@app.route('/api/jobs/history', methods=['GET']) #SPRINT 3 STRETCH
+@app.route('/api/jobs/history', methods=['GET'])
 def get_job_desc():
     user_id = request.headers.get('Email', None)
-    return jsonify({
-        'test': 'test',
-    }), 200
+    if not user_id:
+        return jsonify({'error': 'Missing Email header'}), 400
+
+    user_data = user_job_desc_collection.find_one({'user_id': user_id})
+
+    if not user_data or 'jobs' not in user_data:
+        return jsonify({'jobs': []}), 200
+
+    jobs = []
+    for job in user_data['jobs']:
+        jobs.append({
+            'jobId': job.get('job_id'),
+            'text': job.get('text'),
+            'submittedAt': job.get('timestamp').isoformat().replace('+00:00', 'Z')  # ISO 8601 format with Z
+        })
+
+    return jsonify({'jobs': jobs}), 200
 
 #TODO:
 @app.route('/api/resumes/generate', methods=['POST']) #SPRINT 3 CORE
