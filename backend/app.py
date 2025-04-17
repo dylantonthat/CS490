@@ -18,7 +18,7 @@ ALLOWED_EXTENSIONS = {'docx', 'pdf'}
 clientDB = MongoClient("mongodb+srv://kdv:fp4ZIfpKYM3zghYX@kdv-cluster.wn6dsp1.mongodb.net/?retryWrites=true&w=majority&appName=kdv-cluster")
 db = clientDB['cs490_project']
 user_info_collection = db['user_info']
-user_resume_collection = db['resume']
+user_resume_collection = db['resumes']
 user_freeform_collection = db['freeform']
 user_job_desc_collection = db['job_desc']
 
@@ -139,7 +139,7 @@ Use the exact parameter names.
 
 
 
-def ai_parser(text):
+def ai_parser(text): #TODO: SPRINT 3 STRETCH: add skills as another option to parse (need to change other ai prompts as well)
     prompt = f"""
 You are an intelligent parser for resumes. 
 Given the raw text of a resume, extract the following structured information in JSON format.
@@ -314,9 +314,12 @@ def upload_resume():
         return jsonify({"error": "No file part"}), 400
 
     file = request.files['file']
+    resume_id = str(uuid.uuid4())
+
+    #TODO: SPRINT 3 STRETCH: save resume to user_resume_collection under email and resume_id
+
     file_name, file_ext = file.filename.rsplit('.', 1)
    
-    resume_id = str(uuid.uuid4())
     
     if file and file_ext.lower() in ALLOWED_EXTENSIONS:
         if file_ext.lower() == 'docx':
@@ -346,6 +349,8 @@ def upload_resume():
 def upload_freeform_career_history():
     text = request.json['text']
     history_id = str(uuid.uuid4())
+
+    #TODO: SPRINT 3 STRETCH: save freeform text to user_freeform_collection under email and history_id
 
     print("TEXT RECEIVED:", text) #debugging
 
@@ -508,10 +513,25 @@ def update_freeform():
         'test': 'test',
     }), 200
 
-@app.route('/api/testdb/userinfo', methods=['GET']) #FOR TESTING/DEBUGGING PURPOSES ONLY, SHOULD NOT BE ACCESSIBLE THRU FRONT END
+@app.route('/api/testdb/info', methods=['GET']) #FOR TESTING/DEBUGGING PURPOSES ONLY, SHOULD NOT BE ACCESSIBLE THRU FRONT END
 def get_all_users():
-    users = user_info_collection.find()  # Returns a cursor of all documents
-    return dumps(users), 200  # dumps handles ObjectId and other BSON types
+    info = user_info_collection.find()
+    return dumps(info), 200
+
+@app.route('/api/testdb/resumes', methods=['GET']) #FOR TESTING/DEBUGGING PURPOSES ONLY, SHOULD NOT BE ACCESSIBLE THRU FRONT END
+def get_all_users():
+    resumes = user_resume_collection.find()
+    return dumps(resumes), 200
+
+@app.route('/api/testdb/freeform', methods=['GET']) #FOR TESTING/DEBUGGING PURPOSES ONLY, SHOULD NOT BE ACCESSIBLE THRU FRONT END
+def get_all_users():
+    freeform = user_freeform_collection.find()
+    return dumps(freeform), 200
+
+@app.route('/api/testdb/job_desc', methods=['GET']) #FOR TESTING/DEBUGGING PURPOSES ONLY, SHOULD NOT BE ACCESSIBLE THRU FRONT END
+def get_all_users():
+    job_desc = user_job_desc_collection.find()
+    return dumps(job_desc), 200
 
 if __name__ == '__main__':
     app.run(debug=True)
