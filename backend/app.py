@@ -374,9 +374,13 @@ Here's the freeform skills text:
 
 def ai_resume(job_text, hist_text):
     prompt = f"""
-You are an intelligent parser for resumes. 
-Given the raw text of a resume, extract the following structured information in JSON format.
-Given the structured content of a resume in the JSON format below, generate an adjusted resume in the same format using the given job description.
+You are an intelligent resume generator that tailors resumes to match specific job descriptions.
+
+You will receive:
+-A resume formatted as a JSON object
+-A job description
+
+Your task is to modify the "career" and "skills" sections of the resume to better align with the job description, using its language and keywords where relevant.
 
 Return a JSON object with this structure:
 
@@ -413,7 +417,22 @@ Only include fields you can extract.
 Do not guess missing values, leave them blank.
 Use the exact parameter names.
 
-The career history text can have multiple instances of careers. Each should be stored as a list following the JSON format.
+Instructions
+-Do not modify the contact or education fields.
+-Keep the original job titles, companies, and dates in each career entry.
+-You may remove irrelevant career entries if the user has more than 3 total.
+-Do not guess missing values. If a field is missing, leave it blank.
+
+For each career entry:
+-Edit the "responsibilities" field to align with the job description, using relevant keywords and phrasing.
+-Edit or add to the "accomplishments" list based on plausible achievements suggested by the resume and job description.
+-Ensure that responsibilities describe the core duties, and accomplishments reflect impact or results (e.g., metrics, improvements, success stories).
+
+For skills:
+-Include only skills relevant to the job description.
+-You may extract relevant skills from the career section even if they weren't explicitly listed before.
+-Avoid redundant or overly similar skills.
+
 
 It is important to distinguish responsibility and accomplishments for each career.
 The responsibility should be their main job description for that task, there should only be one.
@@ -423,27 +442,16 @@ For example, a responsibility would be: created QA tests for the development tea
 An accomplishment would be: cut costs by 25% by implementing a new feature.
 It is up to you to determine what is a feature and what is an accomplishment.
 
-Contact information and education will always be the same for a user, so do not change any fields related to "contact" and "education".
-
-When adjusting a "career" entry's "responsibilites" and "accomplishments" to better suit the job description, focus on including key terms from the job description.
-Do not make any changes to the title, company, startDate, or endDate.
-You can omit career entries that irrelevant to the job description if a user has more than 3 entries. 
-If a user has more than 3 entries that are relevant to the job description, do not omit them.  
-
-You can omit skills from the "skills" field that are irrelevant to the job description. 
-You can also extrapolate skills from the user's career history if they are relevant to the job. 
-Make sure there are no redundant skills. 
-
-Here's the strucured content of a resume in a JSON format:
+INPUTTED VALUES:
+-Resume Json:
 \"\"\"{hist_text}\"\"\"
-
-Here's the job description text:
+-Job Description:
 \"\"\"{job_text}\"\"\"
 """
     try:
         response = client.chat.completions.create(model="gpt-4o",
         messages=[
-            {"role": "system", "content": "You are a helpful assistant that extracts structured career history data from free-form text."},
+            {"role": "system", "content": "You are a helpful assistant that tailors resumes for different job descriptions."},
             {"role": "user", "content": prompt}
         ],
         temperature=0.2)
@@ -696,7 +704,7 @@ def generate_resume():
             'status': 'failed'
             }), 400
     
-    job_id = request.json["job_id"]
+    job_id = request.json["jobId"]
     if not job_id:
         return jsonify({
             'error': 'Missing Job ID',
@@ -714,12 +722,16 @@ def generate_resume():
         }), 400
     job_text = job_data['jobs'][0]['text']
 
+    print(f"******JOB FOUND: {job_text}")
     resume_id = str(uuid.uuid4())
 
     hist_text = str(user_info_collection.find_one({'user_id': user_id}, {'_id':0, 'user_id':0}))
 
     # Generate new resume
     resume_json = ai_resume(job_text, hist_text)
+    resume_json['resume_id'] = resume_id
+    resume_json['status'] = 'processing'
+    print(f"******RESUME GENERATED: {resume_json['career']}")
     
     # Storing in 'resume' database. If it already exists
     user_resume_collection.update_one(
@@ -727,6 +739,7 @@ def generate_resume():
         {'$set': resume_json},
         upsert=True
     )
+    print(f"******DATABASE INSERTION")
 
     return jsonify({
         'resumeId': resume_id,
