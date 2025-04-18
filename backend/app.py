@@ -749,17 +749,17 @@ def get_all_users():
     return dumps(info), 200
 
 @app.route('/api/testdb/resumes', methods=['GET']) #FOR TESTING/DEBUGGING PURPOSES ONLY, SHOULD NOT BE ACCESSIBLE THRU FRONT END
-def get_all_users():
+def get_all_resumes():
     resumes = user_resume_collection.find()
     return dumps(resumes), 200
 
 @app.route('/api/testdb/freeform', methods=['GET']) #FOR TESTING/DEBUGGING PURPOSES ONLY, SHOULD NOT BE ACCESSIBLE THRU FRONT END
-def get_all_users():
+def get_all_freeform():
     freeform = user_freeform_collection.find()
     return dumps(freeform), 200
 
 @app.route('/api/testdb/job_desc', methods=['GET']) #FOR TESTING/DEBUGGING PURPOSES ONLY, SHOULD NOT BE ACCESSIBLE THRU FRONT END
-def get_all_users():
+def get_all_job_desc():
     job_desc = user_job_desc_collection.find()
     return dumps(job_desc), 200
 
