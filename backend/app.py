@@ -39,8 +39,6 @@ def parse_docx(filename):
     os.remove(tmp.name)
     return text
 
-
-
 def parse_pdf(filename):
     text = []
     with pdfplumber.open(filename) as pdf:
@@ -49,8 +47,6 @@ def parse_pdf(filename):
             if page_text:
                 text.append(page_text)
     return '\n'.join(text)
-
-
 
 def db_store(new_data):
     user_id = request.headers.get('Email', None)
@@ -66,8 +62,6 @@ def db_store(new_data):
         new_data["user_id"] = user_id
         user_info_collection.insert_one(new_data)
         print(f"DATA STORED: {user_id}")
-
-
 
 def merge(existing, incoming):
     prompt = f"""
@@ -144,8 +138,6 @@ Use the exact parameter names.
             merged = merged.rstrip("```").strip()
 
     return json.loads(merged)
-
-
 
 def ai_parser(text):
     prompt = f"""
@@ -226,8 +218,6 @@ Here's the resume text:
     except Exception as e:
         print("OpenAI API error:", e)
         return None
-
-
 
 def ai_freeform(text):
     prompt = f"""
@@ -382,6 +372,101 @@ Here's the freeform skills text:
         print("OpenAI API error:", e)
         return None
 
+def ai_resume(job_text, hist_text):
+    prompt = f"""
+You are an intelligent parser for resumes. 
+Given the raw text of a resume, extract the following structured information in JSON format.
+Given the structured content of a resume in the JSON format below, generate an adjusted resume in the same format using the given job description.
+
+Return a JSON object with this structure:
+
+{{
+  "contact": {{
+    "name": "",
+    "email": "",
+    "phone": ""
+  }},
+  "education": [
+    {{
+      "degree": "",
+      "institution": "",
+      "startDate": "",
+      "endDate": "",
+      "gpa": ""
+    }}
+  ],
+  "career": [
+    {{
+      "title": "",
+      "company": "",
+      "startDate": "",
+      "endDate": "",
+      "responsibilities": "",
+      "accomplishments": ["", ""]
+    }}
+  ],
+  "skills": ["", ""]
+}}
+
+It must be formatted like this to be used in future steps involving resumes.
+Only include fields you can extract.
+Do not guess missing values, leave them blank.
+Use the exact parameter names.
+
+The career history text can have multiple instances of careers. Each should be stored as a list following the JSON format.
+
+It is important to distinguish responsibility and accomplishments for each career.
+The responsibility should be their main job description for that task, there should only be one.
+The accomplishments should be a list of accomplishments they were able to achieve, there can be multiple
+Either of these can be blank.
+For example, a responsibility would be: created QA tests for the development team to use.
+An accomplishment would be: cut costs by 25% by implementing a new feature.
+It is up to you to determine what is a feature and what is an accomplishment.
+
+Contact information and education will always be the same for a user, so do not change any fields related to "contact" and "education".
+
+When adjusting a "career" entry's "responsibilites" and "accomplishments" to better suit the job description, focus on including key terms from the job description.
+Do not make any changes to the title, company, startDate, or endDate.
+You can omit career entries that irrelevant to the job description if a user has more than 3 entries. 
+If a user has more than 3 entries that are relevant to the job description, do not omit them.  
+
+You can omit skills from the "skills" field that are irrelevant to the job description. 
+You can also extrapolate skills from the user's career history if they are relevant to the job. 
+Make sure there are no redundant skills. 
+
+Here's the strucured content of a resume in a JSON format:
+\"\"\"{hist_text}\"\"\"
+
+Here's the job description text:
+\"\"\"{job_text}\"\"\"
+"""
+    try:
+        response = client.chat.completions.create(model="gpt-4o",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant that extracts structured career history data from free-form text."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.2)
+
+        content = response.choices[0].message.content.strip()
+        # Try parsing it as JSON
+
+        if content.startswith("```"):
+            content = re.sub(r"^```[a-zA-Z]*\n?", "", content)
+            content = content.rstrip("```").strip()
+
+        parsed = json.loads(content)
+        return parsed
+
+    except json.JSONDecodeError as e:
+        print("Failed to parse JSON:", e)
+        print("Raw content:", content)
+        return None
+    except Exception as e:
+        print("OpenAI API error:", e)
+        return None
+
+# ***** SPRINT 2 APIS BELOW
 @app.route('/')
 def hello():
     return 'Hello, World!'
@@ -402,7 +487,6 @@ def upload_resume():
     file_name = file.filename
     file_ext = file_name.rsplit('.', 1)[-1].lower()
    
-    
     if file and file_ext.lower() in ALLOWED_EXTENSIONS:
         if file_ext.lower() == 'docx':
             resume_text = parse_docx(file)
@@ -502,7 +586,7 @@ def upload_freeform_career_history():
 def get_career_history():
     user_id = request.headers.get('Email', None)
     print("******USER EMAIL: ", user_id)
-    user_career = user_info_collection.find_one({"user_id": user_id}, {'career':1, '_id':0})
+    user_career = user_info_collection.find_one({'user_id': user_id}, {'career':1, '_id':0})
 
     if user_career:
         print("****** USER CAREER EXISTS: ", user_career)
@@ -546,7 +630,7 @@ def update_edu():
         'test': 'test',
     }), 200
 
-# SPRINT 3 APIS BELOW
+# ***** SPRINT 3 APIS BELOW
 @app.route('/api/jobs/submit', methods=['POST'])
 def upload_job_desc():
     user_id = request.headers.get('Email', None)
@@ -602,12 +686,51 @@ def get_job_desc():
 
     return jsonify({'jobs': jobs}), 200
 
-#TODO:
 @app.route('/api/resumes/generate', methods=['POST']) #SPRINT 3 CORE
 def generate_resume():
+    # Getting parameters and checking for errors
     user_id = request.headers.get('Email', None)
+    if not user_id:
+        return jsonify({
+            'error': 'Missing Email header', 
+            'status': 'failed'
+            }), 400
+    
+    job_id = request.json["job_id"]
+    if not job_id:
+        return jsonify({
+            'error': 'Missing Job ID',
+            'status': 'failed'
+        }), 400
+    
+    job_data = user_job_desc_collection.find_one(
+        {'user_id': user_id, 'jobs.job_id':job_id},
+        {'jobs': {'$elemMatch': {'job_id':job_id}}}
+    )
+    if not job_data:
+        return jsonify({
+            'error': 'Given job Id does not exist in database',
+            'status': 'failed'
+        }), 400
+    job_text = job_data['jobs'][0]['text']
+
+    resume_id = str(uuid.uuid4())
+
+    hist_text = str(user_info_collection.find_one({'user_id': user_id}, {'_id':0, 'user_id':0}))
+
+    # Generate new resume
+    resume_json = ai_resume(job_text, hist_text)
+    
+    # Storing in 'resume' database. If it already exists
+    user_resume_collection.update_one(
+        {'user_id': user_id, 'job_id':job_id},
+        {'$set': resume_json},
+        upsert=True
+    )
+
     return jsonify({
-        'test': 'test',
+        'resumeId': resume_id,
+        'status': 'processing'
     }), 200
 
 #TODO:
@@ -659,7 +782,6 @@ def upload_skills():
         'error': 'Empty text',
         'status': 'failed'
     }), 400
-
 
 @app.route('/api/resumes/skills', methods=['GET'])
 def get_skills():
@@ -743,6 +865,8 @@ def update_freeform():
         'test': 'test',
     }), 200
 
+
+# ***** DEBUGGING APIS
 @app.route('/api/testdb/info', methods=['GET']) #FOR TESTING/DEBUGGING PURPOSES ONLY, SHOULD NOT BE ACCESSIBLE THRU FRONT END
 def get_all_users():
     info = user_info_collection.find()
