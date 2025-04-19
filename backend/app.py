@@ -24,6 +24,7 @@ db = clientDB['cs490_project']
 fs = gridfs.GridFS(db)
 user_info_collection = db['user_info']
 user_resume_collection = db['resumes']
+user_resume_gen_collection = db['resumes_gen']
 user_freeform_collection = db['freeform']
 user_job_desc_collection = db['job_desc']
 
@@ -493,6 +494,7 @@ def upload_resume():
     resume_id = str(uuid.uuid4())
 
     file_name = file.filename
+    file_firstname = file_name.rsplit('.', 1)[0].lower()
     file_ext = file_name.rsplit('.', 1)[-1].lower()
    
     if file and file_ext.lower() in ALLOWED_EXTENSIONS:
@@ -511,7 +513,11 @@ def upload_resume():
 
         with tempfile.TemporaryDirectory() as temp_dir:
             input_path = os.path.join(temp_dir, file_name)
-            file.save(input_path)
+            # Reading file and writing to temp temp input path
+            file.seek(0)
+            file_data = file.read()
+            with open(input_path, 'wb') as f_out:
+                f_out.write(file_data)
 
             if file_ext == 'docx':
                 try:
@@ -527,7 +533,8 @@ def upload_resume():
 
                     converted_pdf = input_path.rsplit('.', 1)[0] + '.pdf'
                     with open(converted_pdf, 'rb') as pdf_file:
-                        file_id = fs.put(pdf_file, filename=f"{file_name}.pdf", content_type='application/pdf')
+                        pdf_file.seek(0)
+                        file_id = fs.put(pdf_file, filename=f"{file_firstname}.pdf", content_type='application/pdf')
 
                 except subprocess.CalledProcessError as e:
                     return jsonify({"error": "Failed to convert docx to PDF"}), 500
@@ -542,7 +549,7 @@ def upload_resume():
             'user_id': user_id,
             'file_id': file_id,
             'filename': file_name,
-            'content_type': file_name if file_ext == 'pdf' else f"{file_name}.pdf",
+            'content_type': file_name if file_ext == 'pdf' else f"{file_firstname}.pdf",
             'timestamp': timestamp
         })
 
@@ -734,7 +741,7 @@ def generate_resume():
     print(f"******RESUME GENERATED: {resume_json['career']}")
     
     # Storing in 'resume' database. If it already exists
-    user_resume_collection.update_one(
+    user_resume_gen_collection.update_one(
         {'user_id': user_id, 'job_id':job_id},
         {'$set': resume_json},
         upsert=True
