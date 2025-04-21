@@ -782,7 +782,7 @@ def view_contact_info():
     print("******USER EMAIL: ", user_id)
     user_contact = user_info_collection.find_one({"user_id": user_id}, {'contact':1, '_id':0})
 
-    if user_skills:
+    if user_contact:
         print("****** USER CONTACT EXISTS: ", user_contact)
 
     else:
