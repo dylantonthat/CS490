@@ -927,5 +927,10 @@ def get_all_job_desc():
     job_desc = user_job_desc_collection.find()
     return dumps(job_desc), 200
 
+@app.route('/api/testdb/resumesgen', methods=['GET']) #FOR TESTING/DEBUGGING PURPOSES ONLY, SHOULD NOT BE ACCESSIBLE THRU FRONT END
+def get_all_resumes():
+    resumes_gen = user_resume_gen_collection.find()
+    return dumps(resumes_gen), 200
+
 if __name__ == '__main__':
     app.run(debug=True)
