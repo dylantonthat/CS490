@@ -571,10 +571,25 @@ def upload_resume():
 
 @app.route('/api/resumes/history', methods=['POST'])
 def upload_freeform_career_history():
+    user_id = request.headers.get('Email', None)
+    if not user_id:
+        return jsonify({"error": "Missing user ID"}), 400
+    
+    if 'text' not in request.json:
+        return jsonify({"error": "No text part"}), 400
+
     text = request.json['text']
     history_id = str(uuid.uuid4())
+    timestamp = datetime.now()
 
-    #TODO: SPRINT 3 STRETCH: save freeform text to user_freeform_collection under email and history_id
+    freeform = {
+        "user_id": user_id,
+        "history_id": history_id,
+        "text": text,
+        "timestamp": timestamp
+    }
+
+    user_freeform_collection.insert_one(freeform)
 
     print("TEXT RECEIVED:", text) #debugging
 
