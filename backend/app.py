@@ -884,13 +884,18 @@ def view_resume_file(resume_id):
 # />
 
 #ok so these last two make no sense because we already have a GET and PUT /api/resumes/history but he also wants us to view and edit the freeform text?
-#TODO:
-@app.route('/api/resumes/freeform', methods=['GET']) #SPRINT 3 STRETCH (need to change our POST method to also save freeform text to database)
+@app.route('/api/resumes/freeform', methods=['GET'])
 def get_freeform():
     user_id = request.headers.get('Email', None)
-    return jsonify({
-        'test': 'test',
-    }), 200
+    if not user_id:
+        return jsonify({"error": "Missing user ID"}), 400
+
+    history_entries = user_freeform_collection.find({"user_id": user_id}).sort("timestamp", -1)
+
+    return Response(
+        dumps(list(history_entries)),
+        mimetype='application/json'
+    )
 
 #TODO:
 @app.route('/api/resumes/freeform:id', methods=['PUT']) #SPRINT 3 STRETCH (also make sure that when you edit a freeform entry it re-posts it so it shows up)
