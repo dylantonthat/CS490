@@ -776,7 +776,6 @@ def get_resume_status():
         'test': 'test',
     }), 200
 
-#TODO:
 @app.route('/api/resumes/contact', methods=['GET']) #SPRINT 3 STRETCH
 def view_contact_info():
     user_id = request.headers.get('Email', None)
