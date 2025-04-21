@@ -780,9 +780,18 @@ def get_resume_status():
 @app.route('/api/resumes/contact', methods=['GET']) #SPRINT 3 STRETCH
 def view_contact_info():
     user_id = request.headers.get('Email', None)
-    return jsonify({
-        'test': 'test',
-    }), 200
+    print("******USER EMAIL: ", user_id)
+    user_contact = user_info_collection.find_one({"user_id": user_id}, {'contact':1, '_id':0})
+
+    if user_skills:
+        print("****** USER CONTACT EXISTS: ", user_contact)
+
+    else:
+        print("****** USER DOES NOT EXIST")
+        return jsonify({
+            "hiii": "iiii"
+        }), 200
+    return jsonify(user_contact), 200
 
 #TODO:
 @app.route('/api/resumes/contact:id', methods=['PUT']) #SPRINT 3 STRETCH
