@@ -38,7 +38,10 @@ export default function Navbar() {
     <header className="bg-white dark:bg-gray-800 shadow text-gray-800 dark:text-white body-font">
       <div className="container mx-auto flex flex-wrap p-4 flex-col md:flex-row items-center justify-between">
         {/* Logo & App Name */}
-        <div className="flex items-center space-x-2">
+        <div
+          className="flex items-center space-x-2 cursor-pointer"
+          onClick={() => router.push("/home")}
+        >
           <Image
             src="/logo.png"
             alt="Logo"
@@ -113,7 +116,7 @@ export default function Navbar() {
                 >
                   Freeform
                 </button>
-                
+
               </div>
             )}
           </div>
