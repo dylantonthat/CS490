@@ -816,21 +816,19 @@ def get_resume_status(resume_id):
     if not resume_doc:
         # Not found at all
         return jsonify({
-            "error": "Resume ID not found",
-            "status": "not found"
+            "error": "Resume ID not found"
         }), 404
 
     if resume_doc['user_id'] != user_id:
         # Found, but belongs to someone else
         return jsonify({
-            "error": "Access forbidden: resume does not belong to this user",
-            "status": "forbidden"
+            "error": "Access forbidden: resume does not belong to this user"
         }), 403
 
     # Found and belongs to the user
     return jsonify({
         "resume_id": resume_id,
-        "status": resume_doc.get("status", "unknown")
+        "status": "completed"
     }), 200
 
 
