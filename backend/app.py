@@ -660,7 +660,7 @@ def update_career_history(id):
         'status': 'updated',
     }), 200
 
-@app.route('/api/resumes/history', methods=['POST']) #SPRINT 2 STRETCH
+@app.route('/api/resumes/history/upload', methods=['POST']) #SPRINT 2 STRETCH
 def upload_career_history():
     print("uploading new job")
     # 'id' is the index from the frontend, the frontend outputs them in the same order as the database, so it normally should match up
@@ -730,6 +730,28 @@ def update_edu(id):
 
     return jsonify({
         'status': 'updated',
+    }), 200
+
+@app.route('/api/resumes/education', methods=['POST']) #SPRINT 2 STRETCH
+def upload_edu():
+    print("uploading new edu")
+    # 'id' is the index from the frontend, the frontend outputs them in the same order as the database, so it normally should match up
+    form_data = request.get_json()
+    user_id = request.headers.get('Email', None)
+    
+    print(f'USER ID: {user_id}')
+    print(f'FORM DATA: {form_data}')
+
+    result = user_info_collection.update_one(
+        {'user_id': user_id},
+        {'$push': {'education': form_data}},
+        upsert=True
+    )
+    # print("Matched count:", result.matched_count)
+    # print("Modified count:", result.modified_count)
+
+    return jsonify({
+        'status': 'uploading',
     }), 200
 
 @app.route('/api/resumes/education', methods=['DELETE']) #SPRINT 2 STRETCH
