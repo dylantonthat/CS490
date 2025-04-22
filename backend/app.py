@@ -17,6 +17,10 @@ from datetime import datetime, timezone
 
 client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY")) #API KEY MUST BE SET IN ENVIRONMENT
 
+RESUME_PROCESSING = {}
+RESUME_FAILED = {}
+RESUME_FAILED_JSON = {}
+
 ALLOWED_EXTENSIONS = {'docx', 'pdf'}
 
 clientDB = MongoClient("mongodb+srv://kdv:fp4ZIfpKYM3zghYX@kdv-cluster.wn6dsp1.mongodb.net/?retryWrites=true&w=majority&appName=kdv-cluster")
@@ -373,7 +377,7 @@ Here's the freeform skills text:
         print("OpenAI API error:", e)
         return None
 
-def ai_resume(job_text, hist_text):
+def ai_resume(job_text, hist_text, resume_id):
     prompt = f"""
 You are an intelligent resume generator that tailors resumes to match specific job descriptions.
 
@@ -468,10 +472,18 @@ INPUTTED VALUES:
         return parsed
 
     except json.JSONDecodeError as e:
+
+        RESUME_PROCESSING.remove(resume_id) #for getting status
+        RESUME_FAILED_JSON.add(resume_id)
+
         print("Failed to parse JSON:", e)
         print("Raw content:", content)
         return None
     except Exception as e:
+
+        RESUME_PROCESSING.remove(resume_id) #for getting status
+        RESUME_FAILED.add(resume_id)
+
         print("OpenAI API error:", e)
         return None
 
@@ -741,16 +753,18 @@ def generate_resume():
         return jsonify({
             'error': 'Given job Id does not exist in database',
             'status': 'failed'
-        }), 400
+        }), 404
     job_text = job_data['jobs'][0]['text']
 
     print(f"******JOB FOUND: {job_text}")
     resume_id = str(uuid.uuid4())
 
+    RESUME_PROCESSING.add(resume_id) #for getting status
+
     hist_text = str(user_info_collection.find_one({'user_id': user_id}, {'_id':0, 'user_id':0}))
 
     # Generate new resume
-    resume_json = ai_resume(job_text, hist_text)
+    resume_json = ai_resume(job_text, hist_text, resume_id)
     resume_json['resume_id'] = resume_id
     resume_json['status'] = 'processing'
     print(f"******RESUME GENERATED: {resume_json['career']}")
@@ -763,18 +777,62 @@ def generate_resume():
     )
     print(f"******DATABASE INSERTION")
 
+    RESUME_PROCESSING.remove(resume_id)
+
     return jsonify({
         'resumeId': resume_id,
         'status': 'processing'
     }), 200
 
 #TODO:
-@app.route('/api/resumes/status:resumeId', methods=['GET']) #SPRINT 3 CORE
-def get_resume_status():
+@app.route('/api/resumes/status/<resume_id>', methods=['GET']) #SPRINT 3 CORE
+def get_resume_status(resume_id):
     user_id = request.headers.get('Email', None)
+    if not user_id:
+        return jsonify({"error": "Missing user ID"}), 400
+    
+    if resume_id in RESUME_PROCESSING:
+        return jsonify({
+            "resumeId": resume_id,
+            "status": "processing"
+        }), 200
+    
+    if resume_id in RESUME_FAILED:
+        return jsonify({
+            "resumeId": resume_id,
+            "status": "failed",
+            "error": "OpenAI API error"
+        }), 500
+    
+    if resume_id in RESUME_FAILED_JSON:
+        return jsonify({
+            "resumeId": resume_id,
+            "status": "failed",
+            "error": "Failed to parse JSON"
+        }), 500
+    
+    resume_doc = user_resume_gen_collection.find_one({'resume_id': resume_id})
+    
+    if not resume_doc:
+        # Not found at all
+        return jsonify({
+            "error": "Resume ID not found",
+            "status": "not found"
+        }), 404
+
+    if resume_doc['user_id'] != user_id:
+        # Found, but belongs to someone else
+        return jsonify({
+            "error": "Access forbidden: resume does not belong to this user",
+            "status": "forbidden"
+        }), 403
+
+    # Found and belongs to the user
     return jsonify({
-        'test': 'test',
+        "resume_id": resume_id,
+        "status": resume_doc.get("status", "unknown")
     }), 200
+
 
 @app.route('/api/resumes/contact', methods=['GET']) #SPRINT 3 STRETCH
 def view_contact_info():
