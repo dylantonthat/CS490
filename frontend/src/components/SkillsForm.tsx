@@ -28,7 +28,7 @@ export default function SkillsForm() {
         console.error("Error fetching skills data:", err)
       );
   }, [user]);
-
+  const [status, setStatus] = useState("");
   const handleAdd = async () => {
     if (!user) return;
     const cleaned = input.trim().toLowerCase();
@@ -36,11 +36,17 @@ export default function SkillsForm() {
     const newSkills = [...skills, input.trim()];
     setSkills(newSkills);
     setInput("");
-    await axios.post(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/skills`,
-      { skills: newSkills },
-      { headers: { Email: user.email! } }
-    );
+    try {
+      setStatus("Deduplicating...");
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/skills`,
+        { skills: newSkills },
+        { headers: { Email: user.email! } }
+      );
+      setStatus("Deduplicated! (refresh for changes)");
+    } catch (err) {
+      setStatus("Submission failed.");
+    }
   };
 
   if (isLoading || !user) return null;
@@ -62,6 +68,7 @@ export default function SkillsForm() {
         >
           Add
         </button>
+        <p className="text-sm text-gray-600 dark:text-gray-400">{status}</p>
       </div>
       <div className="flex flex-wrap gap-2">
         {skills.map((skill, i) => (
