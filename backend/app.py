@@ -877,11 +877,13 @@ def update_contact_info():
 
 @app.route('/api/resumes/skills', methods=['POST']) #(should be free form like career history)
 def upload_skills():
-    text = request.json['text']
+    data = request.get_json()
+    skills = data.get('skills', [])
     skills_id = str(uuid.uuid4())
 
-    print("TEXT RECEIVED:", text) #debugging
-
+    print("TEXT RECEIVED:", skills) #debugging
+    
+    text = ", ".join(skills)
     skills_json = ai_skills(text)
 
     print("TEXT PARSED:", skills_json) #debugging
