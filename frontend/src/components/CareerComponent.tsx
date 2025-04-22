@@ -28,7 +28,7 @@ export default function CareerComponent() {
   useEffect(() => {
     if (!user) return;
     axios
-      .get('http://localhost:5000/api/resumes/history', {
+      .get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/history`, {
         headers: { Email: `${user.email}` }
       })
       .then((res) => setJobs(res.data.career || []))
@@ -79,7 +79,7 @@ export default function CareerComponent() {
       if (!user) return;
 
       if (editingIndex !== null) {
-        await axios.put('http://localhost:5000/api/resumes/history', {
+        await axios.put(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/history`, {
           index: editingIndex,
           ...formData
         });
@@ -89,7 +89,7 @@ export default function CareerComponent() {
         setMessage('Job updated successfully.');
       } else {
         const res = await axios.post(
-          'http://localhost:5000/api/resumes/history',
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/history`,
           formData,
           { headers: { Email: `${user.email}` } }
         );
@@ -107,7 +107,7 @@ export default function CareerComponent() {
 
   const handleRemove = async (index: number) => {
     try {
-      await axios.delete('http://localhost:5000/api/resumes/history', {
+      await axios.delete(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/history`, {
         data: { index }
       });
       setJobs((prev) => prev.filter((_, i) => i !== index));

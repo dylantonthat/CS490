@@ -25,7 +25,7 @@ export default function EducationView() {
 
   useEffect(() => {
     if (!user) return;
-    axios.get("http://localhost:5000/api/resumes/education", {
+    axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/education`, {
       headers: { Email: `${user.email}` },
     })
       .then((res) => setEducation(res.data.education || []))
@@ -52,14 +52,14 @@ export default function EducationView() {
       if (editingIndex !== null) {
         const updated = [...education];
         updated[editingIndex] = formData as Education;
-        await axios.put("http://localhost:5000/api/resumes/education", {
+        await axios.put(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/education`, {
           index: editingIndex,
           ...formData,
         });
         setEducation(updated);
         setMessage("Education updated successfully.");
       } else {
-        const res = await axios.post("http://localhost:5000/api/resumes/education", formData);
+        const res = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/education`, formData);
         setEducation((prev) => [...prev, res.data]);
         setMessage("Education added successfully.");
       }
@@ -73,7 +73,7 @@ export default function EducationView() {
 
   const handleRemove = async (index: number) => {
     try {
-      await axios.delete("http://localhost:5000/api/resumes/education", {
+      await axios.delete(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/education`, {
         data: { index },
       });
       setEducation((prev) => prev.filter((_, i) => i !== index));
