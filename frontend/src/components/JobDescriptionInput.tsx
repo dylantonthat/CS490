@@ -2,7 +2,11 @@ import { useUser } from "@auth0/nextjs-auth0/client";
 import axios from "axios";
 import { useState } from "react";
 
-export default function JobDescriptionInput() {
+export default function JobDescriptionInput({
+  onJobSubmitted,
+}: {
+  onJobSubmitted: () => void;
+}) {
   const [text, setText] = useState("");
   const [status, setStatus] = useState("");
   const { user } = useUser();
@@ -14,9 +18,14 @@ export default function JobDescriptionInput() {
 
     try {
       setStatus("Submitting...");
-      const res = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/jobs/submit`, { text });
-      setStatus(`Job description saved (ID: ${res.data.jobId})`);
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/jobs/submit`,
+        { text },
+        { headers: { Email: user.email! } }
+      );
+      setStatus("Job description saved!");
       setText("");
+      onJobSubmitted();
     } catch (err) {
       setStatus("Submission failed.");
     }

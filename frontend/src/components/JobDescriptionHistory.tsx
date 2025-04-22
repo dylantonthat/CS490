@@ -1,24 +1,46 @@
+import { useUser } from "@auth0/nextjs-auth0/client";
 import axios from "axios";
 import { useEffect, useState } from "react";
 
-export default function JobDescriptionHistory() {
+export default function JobDescriptionHistory({
+  reload,
+  onReloadComplete,
+}: {
+  reload: boolean;
+  onReloadComplete: () => void;
+}) {
   const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const { user } = useUser();
 
+  const fetchJobs = async () => {
+    if (!user) return;
+
+    try {
+      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/jobs/history`, {
+        headers: { Email: user.email! }
+      });
+      const jobList = res.data.jobs || [];
+      setJobs(jobList);
+      setError(jobList.length === 0 ? "No job description history available." : "");
+    } catch (err) {
+      setError("No job description history available.");
+    } finally {
+      setLoading(false);
+      onReloadComplete();
+    }
+  };
+
+  // Load on first render
   useEffect(() => {
-    const fetchJobs = async () => {
-      try {
-        const res = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/jobs/history`);
-        setJobs(res.data.jobs || []);
-      } catch (err) {
-        setError("Failed to fetch job descriptions.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchJobs();
-  }, []);
+    if (user) fetchJobs();
+  }, [user]);
+
+  // Refresh when reload is triggered
+  useEffect(() => {
+    if (user && reload) fetchJobs();
+  }, [user, reload]);
 
   return (
     <div className="w-full p-8 bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-200 dark:border-gray-800">
@@ -30,10 +52,6 @@ export default function JobDescriptionHistory() {
         <p className="text-gray-600 dark:text-gray-400">Loading...</p>
       ) : error ? (
         <p className="text-red-600 dark:text-red-400">{error}</p>
-      ) : jobs.length === 0 ? (
-        <p className="text-gray-600 dark:text-gray-400">
-          No job descriptions submitted yet.
-        </p>
       ) : (
         <ul className="space-y-4">
           {jobs.map((job) => (
