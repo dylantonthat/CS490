@@ -782,9 +782,7 @@ def generate_resume():
     return jsonify({
         'resumeId': resume_id,
         'status': 'processing'
-    }), 200
-
-#TODO:
+    }), 2
 @app.route('/api/resumes/status/<resume_id>', methods=['GET']) #SPRINT 3 CORE
 def get_resume_status(resume_id):
     user_id = request.headers.get('Email', None)
