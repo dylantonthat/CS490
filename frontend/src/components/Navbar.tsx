@@ -78,47 +78,54 @@ export default function Navbar() {
             </button>
 
             {dropdownOpen && (
-              <div className="absolute right-0 z-20 mt-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg w-40">
-                <button
-                  onClick={() => {
-                    router.push("/home");
-                    setDropdownOpen(false);
-                  }}
-                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
-                >
-                  Home
-                </button>
-                <button
-                  onClick={() => {
-                    router.push("/education");
-                    setDropdownOpen(false);
-                  }}
-                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
-                >
-                  Education
-                </button>
-                <button
-                  onClick={() => {
-                    router.push("/career");
-                    setDropdownOpen(false);
-                  }}
-                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
-                >
-                  Career
-                </button>
-
-                <button
-                  onClick={() => {
-                    router.push("/freeform");
-                    setDropdownOpen(false);
-                  }}
-                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
-                >
-                  Freeform
-                </button>
-
-              </div>
-            )}
+            <div className="absolute right-0 z-20 mt-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg w-40">
+              <button
+                onClick={() => {
+                  router.push("/home");
+                  setDropdownOpen(false);
+                }}
+                className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
+              >
+                Home
+              </button>
+              <button
+                onClick={() => {
+                  router.push("/education");
+                  setDropdownOpen(false);
+                }}
+                className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
+              >
+                Education
+              </button>
+              <button
+                onClick={() => {
+                  router.push("/career");
+                  setDropdownOpen(false);
+                }}
+                className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
+              >
+                Career
+              </button>
+              <button
+                onClick={() => {
+                  router.push("/freeform");
+                  setDropdownOpen(false);
+                }}
+                className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
+              >
+                Freeform
+              </button>
+              <button
+                onClick={() => {
+                  router.push("/resdocs"); // 👈 New resume documents page
+                  setDropdownOpen(false);
+                }}
+                className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
+              >
+                Resume Docs
+              </button>
+            </div>
+          )}
           </div>
 
           {/* Theme Toggle */}

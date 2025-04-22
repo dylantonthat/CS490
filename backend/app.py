@@ -35,7 +35,9 @@ user_job_desc_collection = db['job_desc']
 app = Flask(__name__)
 CORS(app, origins=["http://localhost:3000"])
 
-
+RESUME_PROCESSING = set()
+RESUME_FAILED = set()
+RESUME_FAILED_JSON = set()
 
 def parse_docx(filename):
     with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp:
@@ -377,13 +379,14 @@ Here's the freeform skills text:
         print("OpenAI API error:", e)
         return None
 
-def ai_resume(job_text, hist_text, resume_id):
+def ai_resume(job_text, hist_text, freeform_text, resume_id):
     prompt = f"""
 You are an intelligent resume generator that tailors resumes to match specific job descriptions.
 
 You will receive:
--A resume formatted as a JSON object
--A job description
+- A resume formatted as a JSON object
+- Freeform user-written text about past job experiences
+- A job description
 
 Your task is to modify the "career" and "skills" sections of the resume to better align with the job description, using its language and keywords where relevant.
 
@@ -417,52 +420,38 @@ Return a JSON object with this structure:
   "skills": ["", ""]
 }}
 
-It must be formatted like this to be used in future steps involving resumes.
-Only include fields you can extract.
-Do not guess missing values, leave them blank.
-Use the exact parameter names.
-
-Instructions
--Do not modify the contact or education fields.
--Keep the original job titles, companies, and dates in each career entry.
--You may remove irrelevant career entries if the user has more than 3 total.
--Do not guess missing values. If a field is missing, leave it blank.
+Instructions:
+- Do not modify the contact or education fields.
+- Keep the original job titles, companies, and dates in each career entry.
+- You may remove irrelevant career entries if the user has more than 3 total.
+- Do not guess missing values. If a field is missing, leave it blank.
 
 For each career entry:
--Edit the "responsibilities" field to align with the job description, using relevant keywords and phrasing.
--Edit or add to the "accomplishments" list based on plausible achievements suggested by the resume and job description.
--Ensure that responsibilities describe the core duties, and accomplishments reflect impact or results (e.g., metrics, improvements, success stories).
-
-For skills:
--Include only skills relevant to the job description.
--You may extract relevant skills from the career section even if they weren't explicitly listed before.
--Avoid redundant or overly similar skills.
-
-
-It is important to distinguish responsibility and accomplishments for each career.
-The responsibility should be their main job description for that task, there should only be one.
-The accomplishments should be a list of accomplishments they were able to achieve, there can be multiple
-Either of these can be blank.
-For example, a responsibility would be: created QA tests for the development team to use.
-An accomplishment would be: cut costs by 25% by implementing a new feature.
-It is up to you to determine what is a feature and what is an accomplishment.
+- Edit "responsibilities" to match the job description.
+- Add "accomplishments" that show measurable success or impact.
+- Use freeform experience where relevant.
 
 INPUTTED VALUES:
--Resume Json:
+- Resume Json:
 \"\"\"{hist_text}\"\"\"
--Job Description:
+
+- Freeform Experience:
+\"\"\"{freeform_text}\"\"\"
+
+- Job Description:
 \"\"\"{job_text}\"\"\"
 """
     try:
-        response = client.chat.completions.create(model="gpt-4o",
-        messages=[
-            {"role": "system", "content": "You are a helpful assistant that tailors resumes for different job descriptions."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.2)
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant that tailors resumes for different job descriptions."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.2
+        )
 
         content = response.choices[0].message.content.strip()
-        # Try parsing it as JSON
 
         if content.startswith("```"):
             content = re.sub(r"^```[a-zA-Z]*\n?", "", content)
@@ -472,20 +461,19 @@ INPUTTED VALUES:
         return parsed
 
     except json.JSONDecodeError as e:
-
-        RESUME_PROCESSING.remove(resume_id) #for getting status
+        RESUME_PROCESSING.remove(resume_id)
         RESUME_FAILED_JSON.add(resume_id)
-
         print("Failed to parse JSON:", e)
         print("Raw content:", content)
         return None
+
     except Exception as e:
-
-        RESUME_PROCESSING.remove(resume_id) #for getting status
+        RESUME_PROCESSING.remove(resume_id)
         RESUME_FAILED.add(resume_id)
-
         print("OpenAI API error:", e)
         return None
+
+
 
 # ***** SPRINT 2 APIS BELOW
 @app.route('/')
@@ -604,14 +592,6 @@ def upload_freeform_career_history():
     user_freeform_collection.insert_one(freeform)
 
     print("TEXT RECEIVED:", text) #debugging
-
-    careers_json = ai_freeform(text)
-
-    print("TEXT PARSED:", careers_json) #debugging
-
-    db_store(careers_json)
-
-    print("TEXT STORED!") #debugging
 
     if text:
         return jsonify({
@@ -834,26 +814,27 @@ def get_job_desc():
 
     return jsonify({'jobs': jobs}), 200
 
-@app.route('/api/resumes/generate', methods=['POST']) #SPRINT 3 CORE
+
+@app.route('/api/resumes/generate', methods=['POST'])  # SPRINT 3 CORE
 def generate_resume():
-    # Getting parameters and checking for errors
     user_id = request.headers.get('Email', None)
     if not user_id:
         return jsonify({
-            'error': 'Missing Email header', 
+            'error': 'Missing Email header',
             'status': 'failed'
-            }), 400
-    
-    job_id = request.json["jobId"]
+        }), 400
+
+    job_id = request.json.get("jobId")
     if not job_id:
         return jsonify({
             'error': 'Missing Job ID',
             'status': 'failed'
         }), 400
-    
+
+    # Fetch job description
     job_data = user_job_desc_collection.find_one(
-        {'user_id': user_id, 'jobs.job_id':job_id},
-        {'jobs': {'$elemMatch': {'job_id':job_id}}}
+        {'user_id': user_id, 'jobs.job_id': job_id},
+        {'jobs': {'$elemMatch': {'job_id': job_id}}}
     )
     if not job_data:
         return jsonify({
@@ -864,26 +845,36 @@ def generate_resume():
 
     print(f"******JOB FOUND: {job_text}")
     resume_id = str(uuid.uuid4())
+    RESUME_PROCESSING.add(resume_id)
 
-    RESUME_PROCESSING.add(resume_id) #for getting status
+    # Fetch uploaded resume JSON
+    structured_resume = user_info_collection.find_one({'user_id': user_id}, {'_id': 0, 'user_id': 0})
+    hist_text = json.dumps(structured_resume)
 
-    hist_text = str(user_info_collection.find_one({'user_id': user_id}, {'_id':0, 'user_id':0}))
+    # Fetch freeform entries
+    freeform_cursor = user_freeform_collection.find({'user_id': user_id}).sort("timestamp", -1)
+    freeform_entries = [entry.get("text", "") for entry in freeform_cursor if entry.get("text", "")]
+    freeform_text = "\n\n".join(freeform_entries)
 
-    # Generate new resume
-    resume_json = ai_resume(job_text, hist_text, resume_id)
+    # Generate AI resume
+    resume_json = ai_resume(job_text, hist_text, freeform_text, resume_id)
+    if not resume_json:
+        return jsonify({
+            "error": "Resume generation failed due to AI error",
+            "status": "failed"
+        }), 500
+
     resume_json['resume_id'] = resume_id
     resume_json['status'] = 'processing'
-    print(f"******RESUME GENERATED: {resume_json['career']}")
-    
-    # Storing in 'resume' database. If it already exists
+
     user_resume_gen_collection.update_one(
-        {'user_id': user_id, 'job_id':job_id},
+        {'user_id': user_id, 'job_id': job_id},
         {'$set': resume_json},
         upsert=True
     )
-    print(f"******DATABASE INSERTION")
 
     RESUME_PROCESSING.remove(resume_id)
+    print("******DATABASE INSERTION COMPLETE")
 
     return jsonify({
         'resumeId': resume_id,
@@ -891,51 +882,71 @@ def generate_resume():
     }), 200
 
 
-@app.route('/api/resumes/status/<resume_id>', methods=['GET']) #SPRINT 3 CORE
+@app.route('/api/resumes/status/<resume_id>', methods=['GET'])
 def get_resume_status(resume_id):
     user_id = request.headers.get('Email', None)
     if not user_id:
         return jsonify({"error": "Missing user ID"}), 400
-    
+
     if resume_id in RESUME_PROCESSING:
         return jsonify({
             "resumeId": resume_id,
             "status": "processing"
         }), 200
-    
+
     if resume_id in RESUME_FAILED:
         return jsonify({
             "resumeId": resume_id,
             "status": "failed",
             "error": "OpenAI API error"
         }), 500
-    
+
     if resume_id in RESUME_FAILED_JSON:
         return jsonify({
             "resumeId": resume_id,
             "status": "failed",
             "error": "Failed to parse JSON"
         }), 500
-    
+
     resume_doc = user_resume_gen_collection.find_one({'resume_id': resume_id})
-    
+
     if not resume_doc:
-        # Not found at all
         return jsonify({
             "error": "Resume ID not found"
         }), 404
 
     if resume_doc['user_id'] != user_id:
-        # Found, but belongs to someone else
         return jsonify({
             "error": "Access forbidden: resume does not belong to this user"
         }), 403
 
-    # Found and belongs to the user
+    if resume_doc.get("status") == "processing":
+        user_resume_gen_collection.update_one(
+            {"resume_id": resume_id},
+            {"$set": {"status": "completed"}}
+        )
+
     return jsonify({
         "resume_id": resume_id,
         "status": "completed"
     }), 200
+
+#custom for resume json retrieval
+@app.route('/api/resumes/raw/<resume_id>', methods=['GET'])
+def get_raw_resume(resume_id):
+    user_id = request.headers.get('Email', None)
+    if not user_id:
+        return jsonify({"error": "Missing user ID"}), 400
+
+    resume_doc = user_resume_gen_collection.find_one({'resume_id': resume_id})
+    if not resume_doc:
+        return jsonify({"error": "Resume not found"}), 404
+
+    if resume_doc['user_id'] != user_id:
+        return jsonify({"error": "Access forbidden: resume does not belong to this user"}), 403
+
+    resume_doc.pop('_id', None) 
+    return jsonify({"raw": resume_doc}), 200
 
 
 @app.route('/api/resumes/contact', methods=['GET']) #SPRINT 3 STRETCH
@@ -1117,12 +1128,6 @@ def update_freeform(history_id):
             }
         }
     )
-
-    new_careers_json = ai_freeform(new_text)
-
-
-    db_store(new_careers_json)
-
 
     return jsonify({
         "history_id": history_id,

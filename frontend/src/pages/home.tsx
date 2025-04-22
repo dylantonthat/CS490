@@ -34,6 +34,8 @@ function ResumeProvider({ children }: { children: ReactNode }) {
 }
 
 function HomePage() {
+  const [reloadJobs, setReloadJobs] = useState(false);
+
   return (
     <ResumeProvider>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white px-4 md:px-16 py-10 space-y-12">
@@ -52,17 +54,20 @@ function HomePage() {
           <CareerForm />
         </div>
 
-        {/* Job Description Features (3-column layout) */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
-          <JobDescriptionInput />
-          <JobDescriptionHistory />
-          <ResumeTrigger />
-        </div>
-
-        {/* Contact and Skills */}
+        {/* Contact and Skills moved up */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-7xl mx-auto">
           <SkillsForm />
           <ContactForm />
+        </div>
+
+        {/* Job Description Features (3-column layout) moved below */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
+          <JobDescriptionInput onJobSubmitted={() => setReloadJobs(true)} />
+          <JobDescriptionHistory
+            reload={reloadJobs}
+            onReloadComplete={() => setReloadJobs(false)}
+          />
+          <ResumeTrigger />
         </div>
 
         {/* Parsed Resume Text */}
