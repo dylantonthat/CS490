@@ -5,32 +5,29 @@ function CalltoAction() {
   const router = useRouter();
 
   return (
-    <section className="text-gray-600 body-font">
-      <div className="container px-5 py-48 mx-auto">
-        {/* Header with Fade-In Animation */}
+    <section className="bg-gray-50 dark:bg-gray-900 py-24">
+      <div className="max-w-4xl mx-auto px-6 text-center">
         <motion.div
-          initial={{ opacity: 0, y: -50 }}
+          initial={{ opacity: 0, y: -30 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: false, amount: 0.3 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          className="text-center mb-20"
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.6 }}
         >
-          <h1 className="sm:text-3xl text-2xl font-medium text-center title-font text-gray-900 mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
             Optimize Your Resume & Land More Interviews
-          </h1>
-          <p className="text-base leading-relaxed xl:w-2/4 lg:w-3/4 mx-auto">
-            Upload your resume and let our AI analyze it for improvements. Get actionable insights to make your resume stand out to recruiters and pass ATS screenings effortlessly.
+          </h2>
+          <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+            Upload your resume and let our AI analyze it for improvements. Get actionable insights to stand out and pass ATS screenings.
           </p>
         </motion.div>
 
-        {/* Call to Action Button - Auth0 login with redirect */}
         <motion.button
-          initial={{ opacity: 0, scale: 0.8 }}
+          onClick={() => router.push("/api/auth/login?returnTo=/home")}
+          className="mt-10 px-6 py-3 text-lg font-medium rounded-full bg-blue-600 text-white hover:bg-blue-700 shadow-md transition-all"
+          initial={{ opacity: 0, scale: 0.95 }}
           whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: false, amount: 0.3 }}
-          transition={{ duration: 0.4, delay: 0.3, ease: "easeOut" }}
-          className="flex mx-auto mt-16 text-white bg-blue-500 border-0 py-3 px-8 focus:outline-none hover:bg-blue-600 rounded text-lg"
-          onClick={() => router.push(`/api/auth/login?returnTo=/home`)}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.4, delay: 0.3 }}
         >
           Get Started
         </motion.button>

@@ -17,6 +17,10 @@ from datetime import datetime, timezone
 
 client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY")) #API KEY MUST BE SET IN ENVIRONMENT
 
+RESUME_PROCESSING = {}
+RESUME_FAILED = {}
+RESUME_FAILED_JSON = {}
+
 ALLOWED_EXTENSIONS = {'docx', 'pdf'}
 
 clientDB = MongoClient("mongodb+srv://kdv:fp4ZIfpKYM3zghYX@kdv-cluster.wn6dsp1.mongodb.net/?retryWrites=true&w=majority&appName=kdv-cluster")
@@ -373,7 +377,7 @@ Here's the freeform skills text:
         print("OpenAI API error:", e)
         return None
 
-def ai_resume(job_text, hist_text):
+def ai_resume(job_text, hist_text, resume_id):
     prompt = f"""
 You are an intelligent resume generator that tailors resumes to match specific job descriptions.
 
@@ -468,10 +472,18 @@ INPUTTED VALUES:
         return parsed
 
     except json.JSONDecodeError as e:
+
+        RESUME_PROCESSING.remove(resume_id) #for getting status
+        RESUME_FAILED_JSON.add(resume_id)
+
         print("Failed to parse JSON:", e)
         print("Raw content:", content)
         return None
     except Exception as e:
+
+        RESUME_PROCESSING.remove(resume_id) #for getting status
+        RESUME_FAILED.add(resume_id)
+
         print("OpenAI API error:", e)
         return None
 
@@ -571,10 +583,25 @@ def upload_resume():
 
 @app.route('/api/resumes/history', methods=['POST'])
 def upload_freeform_career_history():
+    user_id = request.headers.get('Email', None)
+    if not user_id:
+        return jsonify({"error": "Missing user ID"}), 400
+    
+    if 'text' not in request.json:
+        return jsonify({"error": "No text part"}), 400
+
     text = request.json['text']
     history_id = str(uuid.uuid4())
+    timestamp = datetime.now()
 
-    #TODO: SPRINT 3 STRETCH: save freeform text to user_freeform_collection under email and history_id
+    freeform = {
+        "user_id": user_id,
+        "history_id": history_id,
+        "text": text,
+        "timestamp": timestamp
+    }
+
+    user_freeform_collection.insert_one(freeform)
 
     print("TEXT RECEIVED:", text) #debugging
 
@@ -726,16 +753,18 @@ def generate_resume():
         return jsonify({
             'error': 'Given job Id does not exist in database',
             'status': 'failed'
-        }), 400
+        }), 404
     job_text = job_data['jobs'][0]['text']
 
     print(f"******JOB FOUND: {job_text}")
     resume_id = str(uuid.uuid4())
 
+    RESUME_PROCESSING.add(resume_id) #for getting status
+
     hist_text = str(user_info_collection.find_one({'user_id': user_id}, {'_id':0, 'user_id':0}))
 
     # Generate new resume
-    resume_json = ai_resume(job_text, hist_text)
+    resume_json = ai_resume(job_text, hist_text, resume_id)
     resume_json['resume_id'] = resume_id
     resume_json['status'] = 'processing'
     print(f"******RESUME GENERATED: {resume_json['career']}")
@@ -748,26 +777,76 @@ def generate_resume():
     )
     print(f"******DATABASE INSERTION")
 
+    RESUME_PROCESSING.remove(resume_id)
+
     return jsonify({
         'resumeId': resume_id,
         'status': 'processing'
     }), 200
 
-#TODO:
-@app.route('/api/resumes/status:resumeId', methods=['GET']) #SPRINT 3 CORE
-def get_resume_status():
+
+@app.route('/api/resumes/status/<resume_id>', methods=['GET']) #SPRINT 3 CORE
+def get_resume_status(resume_id):
     user_id = request.headers.get('Email', None)
+    if not user_id:
+        return jsonify({"error": "Missing user ID"}), 400
+    
+    if resume_id in RESUME_PROCESSING:
+        return jsonify({
+            "resumeId": resume_id,
+            "status": "processing"
+        }), 200
+    
+    if resume_id in RESUME_FAILED:
+        return jsonify({
+            "resumeId": resume_id,
+            "status": "failed",
+            "error": "OpenAI API error"
+        }), 500
+    
+    if resume_id in RESUME_FAILED_JSON:
+        return jsonify({
+            "resumeId": resume_id,
+            "status": "failed",
+            "error": "Failed to parse JSON"
+        }), 500
+    
+    resume_doc = user_resume_gen_collection.find_one({'resume_id': resume_id})
+    
+    if not resume_doc:
+        # Not found at all
+        return jsonify({
+            "error": "Resume ID not found"
+        }), 404
+
+    if resume_doc['user_id'] != user_id:
+        # Found, but belongs to someone else
+        return jsonify({
+            "error": "Access forbidden: resume does not belong to this user"
+        }), 403
+
+    # Found and belongs to the user
     return jsonify({
-        'test': 'test',
+        "resume_id": resume_id,
+        "status": "completed"
     }), 200
 
-#TODO:
+
 @app.route('/api/resumes/contact', methods=['GET']) #SPRINT 3 STRETCH
 def view_contact_info():
     user_id = request.headers.get('Email', None)
-    return jsonify({
-        'test': 'test',
-    }), 200
+    print("******USER EMAIL: ", user_id)
+    user_contact = user_info_collection.find_one({"user_id": user_id}, {'contact':1, '_id':0})
+
+    if user_contact:
+        print("****** USER CONTACT EXISTS: ", user_contact)
+
+    else:
+        print("****** USER DOES NOT EXIST")
+        return jsonify({
+            "hiii": "iiii"
+        }), 200
+    return jsonify(user_contact), 200
 
 #TODO:
 @app.route('/api/resumes/contact:id', methods=['PUT']) #SPRINT 3 STRETCH
@@ -869,13 +948,18 @@ def view_resume_file(resume_id):
 # />
 
 #ok so these last two make no sense because we already have a GET and PUT /api/resumes/history but he also wants us to view and edit the freeform text?
-#TODO:
-@app.route('/api/resumes/freeform', methods=['GET']) #SPRINT 3 STRETCH (need to change our POST method to also save freeform text to database)
+@app.route('/api/resumes/freeform', methods=['GET'])
 def get_freeform():
     user_id = request.headers.get('Email', None)
-    return jsonify({
-        'test': 'test',
-    }), 200
+    if not user_id:
+        return jsonify({"error": "Missing user ID"}), 400
+
+    history_entries = user_freeform_collection.find({"user_id": user_id}).sort("timestamp", -1)
+
+    return Response(
+        dumps(list(history_entries)),
+        mimetype='application/json'
+    )
 
 #TODO:
 @app.route('/api/resumes/freeform:id', methods=['PUT']) #SPRINT 3 STRETCH (also make sure that when you edit a freeform entry it re-posts it so it shows up)
@@ -906,6 +990,11 @@ def get_all_freeform():
 def get_all_job_desc():
     job_desc = user_job_desc_collection.find()
     return dumps(job_desc), 200
+
+@app.route('/api/testdb/resumesgen', methods=['GET']) #FOR TESTING/DEBUGGING PURPOSES ONLY, SHOULD NOT BE ACCESSIBLE THRU FRONT END
+def get_all_resumes_gen():
+    resumes_gen = user_resume_gen_collection.find()
+    return dumps(resumes_gen), 200
 
 if __name__ == '__main__':
     app.run(debug=True)

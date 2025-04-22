@@ -1,65 +1,47 @@
 import { useUser } from "@auth0/nextjs-auth0/client";
 import { motion } from "framer-motion";
 
-
 function Home() {
-  const { user , isLoading } = useUser(); 
+  const { user } = useUser();
 
   return (
-    <section className="text-gray-600 body-font">
-      <div className="container px-5 py-24 mb-36 mx-auto">
-        {/* Header */}
+    <section className="bg-gray-50 dark:bg-gray-900 py-24 text-gray-900 dark:text-white">
+      <div className="max-w-6xl mx-auto px-6">
         <motion.div
           initial={{ opacity: 0, y: -50 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
-          className="flex flex-col text-center w-full mb-20"
+          className="text-center mb-20"
         >
-          <h2 className="text-xs text-blue-500 tracking-widest font-medium title-font mb-1">
+          <h2 className="text-xs text-blue-500 tracking-widest font-medium mb-2">
             Ying Wu Warriors Present
           </h2>
-          { user ? (
-              <h1 className="sm:text-3xl text-2xl font-medium title-font text-gray-900">
-                WELCOME TO YOUR RESUME TOOL
-              </h1>
-            ) : (
-              <h1 className="sm:text-3xl text-2xl font-medium title-font text-gray-900">
-                AI-POWERED RESUME TOOL
-              </h1>
-            )
-          }
-
+          <h1 className="text-3xl md:text-4xl font-bold">
+            {user ? "WELCOME TO YOUR RESUME TOOL" : "AI-POWERED RESUME TOOL"}
+          </h1>
         </motion.div>
 
-        {/* Features Section - With Scroll Animation */}
-        <div className="flex flex-wrap -m-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {features.map((feature, index) => (
             <motion.div
               key={index}
-              className="p-4 md:w-1/3"
-              initial={{ opacity: 0, y: 50 }}
+              className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden shadow"
+              initial={{ opacity: 0, y: 40 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: false, amount: 0.2 }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ duration: 0.5, delay: index * 0.15 }}
             >
-              <div className="h-full border-2 border-gray-200 border-opacity-60 rounded-lg overflow-hidden">
-                {/* Feature Image */}
-                <img
-                  className="lg:h-48 md:h-36 w-full object-cover object-center"
-                  src={feature.image}
-                  alt={feature.subtitle}
-                />
-                <div className="p-6">
-                  <h2 className="tracking-widest text-xs title-font font-medium text-gray-400 mb-1">
-                    {feature.title}
-                  </h2>
-                  {/* Feature Subtitle */}
-                  <h1 className="title-font text-lg font-medium text-gray-900 mb-3">
-                    {feature.subtitle}
-                  </h1>
-                  {/* Feature Description */}
-                  <p className="leading-relaxed mb-3">{feature.description}</p>
-                </div>
+              <img
+                src={feature.image}
+                alt={feature.subtitle}
+                className="w-full h-40 object-cover"
+              />
+              <div className="p-6">
+                <h4 className="text-sm uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">
+                  {feature.title}
+                </h4>
+                <h3 className="text-lg font-semibold mb-2">{feature.subtitle}</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300">{feature.description}</p>
               </div>
             </motion.div>
           ))}
@@ -69,7 +51,6 @@ function Home() {
   );
 }
 
-// Feature Data Array
 const features = [
   {
     title: "AI-Powered Analysis",
