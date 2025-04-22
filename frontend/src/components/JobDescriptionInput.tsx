@@ -14,7 +14,7 @@ export default function JobDescriptionInput() {
 
     try {
       setStatus("Submitting...");
-      const res = await axios.post("/api/jobs/submit", { text });
+      const res = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/jobs/submit`, { text });
       setStatus(`Job description saved (ID: ${res.data.jobId})`);
       setText("");
     } catch (err) {

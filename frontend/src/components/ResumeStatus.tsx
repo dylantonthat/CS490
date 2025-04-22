@@ -12,7 +12,7 @@ export default function ResumeStatus() {
 
     const interval = setInterval(async () => {
       try {
-        const res = await axios.get(`/api/resumes/status/${resumeId}`);
+        const res = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/status/${resumeId}`);
         setStatus(res.data.status);
         if (res.data.status !== "processing") clearInterval(interval);
         if (res.data.status === "failed") setError(res.data.error || "Unknown error.");

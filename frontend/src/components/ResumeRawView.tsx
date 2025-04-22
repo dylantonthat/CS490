@@ -10,7 +10,7 @@ export default function ResumeRawView() {
   useEffect(() => {
     if (!user) return;
     axios
-      .get("/api/resumes/upload", { headers: { Email: user.email! } })
+      .get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/upload`, { headers: { Email: user.email! } })
       .then((res) => setResumes(res.data.raw || []));
   }, [user]);
 

@@ -9,7 +9,7 @@ export default function JobDescriptionHistory() {
   useEffect(() => {
     const fetchJobs = async () => {
       try {
-        const res = await axios.get("/api/jobs/history");
+        const res = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/jobs/history`);
         setJobs(res.data.jobs || []);
       } catch (err) {
         setError("Failed to fetch job descriptions.");
