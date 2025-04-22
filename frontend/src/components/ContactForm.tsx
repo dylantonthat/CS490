@@ -27,14 +27,24 @@ export default function ContactForm() {
     const { name, value } = e.target;
     setContact((prev) => ({ ...prev, [name]: value }));
   };
+  const [status, setStatus] = useState("");
 
   const handleSubmit = async () => {
     if (!user) return;
-    await axios.put(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/contact`,
-      { contact },
-      { headers: { Email: user.email! } }
-    );
+
+    try {
+      setStatus("Submitting...");
+      await axios.put(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/contact`,
+        { contact },
+        { headers: { Email: user.email! } }
+      );
+      setStatus("Contact info saved!");
+
+    } catch (err) {
+      setStatus("Submission failed.");
+    }
+
   };
   
   if (isLoading || !user) return null;
@@ -62,6 +72,7 @@ export default function ContactForm() {
         >
           Save Contact Info
         </button>
+        <p className="text-sm text-gray-600 dark:text-gray-400">{status}</p>
       </div>
     </div>
   );
