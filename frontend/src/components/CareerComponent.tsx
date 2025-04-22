@@ -79,10 +79,10 @@ export default function CareerComponent() {
       if (!user) return;
 
       if (editingIndex !== null) {
-        await axios.put(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/history`, {
-          index: editingIndex,
-          ...formData
-        });
+        await axios.put(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/history/${editingIndex}`, 
+          formData,
+          {headers: { Email: `${user.email}` } }
+        );
         const updated = [...jobs];
         updated[editingIndex] = formData as Job;
         setJobs(updated);
@@ -106,9 +106,12 @@ export default function CareerComponent() {
   };
 
   const handleRemove = async (index: number) => {
+    if (!user) return;
+
     try {
       await axios.delete(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/history`, {
-        data: { index }
+        data: { index },
+        headers: { Email: `${user.email}` }
       });
       setJobs((prev) => prev.filter((_, i) => i !== index));
       setMessage('Entry removed.');

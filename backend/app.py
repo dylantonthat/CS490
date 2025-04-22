@@ -657,19 +657,125 @@ def get_edu_history():
     return jsonify(user_edu), 200
 
 #TODO:
-@app.route('/api/resumes/history:id', methods=['PUT']) #SPRINT 2 STRETCH
-def update_career_history():
+@app.route('/api/resumes/history/<int:id>', methods=['PUT']) #SPRINT 2 STRETCH
+def update_career_history(id):
+    # 'id' is the index from the frontend, the frontend outputs them in the same order as the database, so it normally should match up
+    form_data = request.get_json()
     user_id = request.headers.get('Email', None)
+    
+    update_path = f'career.{id}'
+
+    print(f'USER ID: {user_id}')
+    print(f'FORM DATA: {form_data}')
+    print(f'CAREER PATH: {update_path}')
+
+    result = user_info_collection.update_one(
+        {'user_id': user_id},
+        {'$set': {update_path: form_data}}
+    )
+    # print("Matched count:", result.matched_count)
+    # print("Modified count:", result.modified_count)
+
     return jsonify({
-        'test': 'test',
+        'status': 'updated',
+    }), 200
+
+@app.route('/api/resumes/history', methods=['POST']) #SPRINT 2 STRETCH
+def upload_career_history():
+    print("uploading new job")
+    # 'id' is the index from the frontend, the frontend outputs them in the same order as the database, so it normally should match up
+    form_data = request.get_json()
+    user_id = request.headers.get('Email', None)
+    
+    print(f'USER ID: {user_id}')
+    print(f'FORM DATA: {form_data}')
+
+    result = user_info_collection.update_one(
+        {'user_id': user_id},
+        {'$push': {'career': form_data}},
+        upsert=True
+    )
+    # print("Matched count:", result.matched_count)
+    # print("Modified count:", result.modified_count)
+
+    return jsonify({
+        'status': 'updated',
+    }), 200
+
+@app.route('/api/resumes/history', methods=['DELETE']) #SPRINT 2 STRETCH
+def delete_career_history():
+    # 'id' is the index from the frontend, the frontend outputs them in the same order as the database, so it normally should match up
+    data = request.get_json()
+    index = data.get('index')
+    user_id = request.headers.get('Email', None)
+
+    update_path = f'career.{index}'
+    
+    print(f'USER ID: {user_id}')
+    print(f'USER ID: {update_path}')
+
+    # Unsets the desired career entry, but leaves it null. The second update removes nulls
+    result = user_info_collection.update_one(
+        {'user_id': user_id},
+        {'$unset': {update_path: 1}}
+    )
+    result = user_info_collection.update_one(
+        {'user_id': user_id},
+        {'$pull': {'career': None}}
+    )
+
+    return jsonify({
+        'status': 'removed',
     }), 200
 
 #TODO:
-@app.route('/api/resumes/education:id', methods=['PUT']) #SPRINT 2 STRETCH
-def update_edu():
+@app.route('/api/resumes/education/<int:id>', methods=['PUT']) #SPRINT 2 STRETCH
+def update_edu(id):
+    # 'id' is the index from the frontend, the frontend outputs them in the same order as the database, so it normally should match up
+    form_data = request.get_json()
     user_id = request.headers.get('Email', None)
+    
+    update_path = f'education.{id}'
+
+    print(f'USER ID: {user_id}')
+    print(f'FORM DATA: {form_data}')
+    print(f'EDU PATH: {update_path}')
+
+    result = user_info_collection.update_one(
+        {'user_id': user_id},
+        {'$set': {update_path: form_data}}
+    )
+    # print("Matched count:", result.matched_count)
+    # print("Modified count:", result.modified_count)
+
     return jsonify({
-        'test': 'test',
+        'status': 'updated',
+    }), 200
+
+@app.route('/api/resumes/education', methods=['DELETE']) #SPRINT 2 STRETCH
+def delete_edu():
+    # 'id' is the index from the frontend, the frontend outputs them in the same order as the database, so it normally should match up
+    data = request.get_json()
+    index = data.get('index')
+    user_id = request.headers.get('Email', None)
+
+    update_path = f'education.{index}'
+    
+    print(f'USER ID: {user_id}')
+    print(f'USER ID: {update_path}')
+
+    # Unsets the desired career entry, but leaves it null. The second update removes nulls
+    result = user_info_collection.update_one(
+        {'user_id': user_id},
+        {'$unset': {update_path: 1}}
+    )
+    result = user_info_collection.update_one(
+        {'user_id': user_id},
+        {'$pull': {'education': None}}
+    )
+
+    return jsonify({
+        'status': 'removed',
     }), 200
 
 # ***** SPRINT 3 APIS BELOW
