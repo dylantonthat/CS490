@@ -13,7 +13,7 @@ export default function ResumeTrigger() {
   useEffect(() => {
     const fetchJobs = async () => {
       try {
-        const res = await axios.get("/api/jobs/history");
+        const res = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/jobs/history`);
         setJobOptions(res.data.jobs || []);
       } catch {
         setStatus("Could not load job history.");
@@ -27,7 +27,7 @@ export default function ResumeTrigger() {
 
     try {
       setStatus("Generating...");
-      const res = await axios.post("/api/resumes/generate", { jobId, historyId });
+      const res = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/generate`, { jobId, historyId });
       setResumeId(res.data.resumeId);
       setStatus("Resume generation started.");
     } catch {

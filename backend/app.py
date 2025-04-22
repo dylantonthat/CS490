@@ -954,21 +954,42 @@ def view_contact_info():
         }), 200
     return jsonify(user_contact), 200
 
-#TODO:
-@app.route('/api/resumes/contact:id', methods=['PUT']) #SPRINT 3 STRETCH
+@app.route('/api/resumes/contact', methods=['PUT']) #SPRINT 3 STRETCH
 def update_contact_info():
     user_id = request.headers.get('Email', None)
+    if not user_id:
+        return jsonify({"error": "Missing user ID"}), 400
+
+    contact_data = request.json.get('contact')
+    if not contact_data:
+        return jsonify({"error": "Missing contact field"}), 400
+
+    required_fields = ["email", "name", "phone"]
+    for field in required_fields:
+        if field not in contact_data:
+            return jsonify({"error": f"Missing contact field: {field}"}), 400
+
+    # Update or insert contact info
+    user_info_collection.update_one(
+        {"user_id": user_id},
+        {"$set": {"contact": contact_data}},
+        upsert=True
+    )
+
     return jsonify({
-        'test': 'test',
+        "status": "updated",
+        "contact": contact_data
     }), 200
 
 @app.route('/api/resumes/skills', methods=['POST']) #(should be free form like career history)
 def upload_skills():
-    text = request.json['text']
+    data = request.get_json()
+    skills = data.get('skills', [])
     skills_id = str(uuid.uuid4())
 
-    print("TEXT RECEIVED:", text) #debugging
-
+    print("TEXT RECEIVED:", skills) #debugging
+    
+    text = ", ".join(skills)
     skills_json = ai_skills(text)
 
     print("TEXT PARSED:", skills_json) #debugging
@@ -1067,12 +1088,45 @@ def get_freeform():
         mimetype='application/json'
     )
 
-#TODO:
-@app.route('/api/resumes/freeform:id', methods=['PUT']) #SPRINT 3 STRETCH (also make sure that when you edit a freeform entry it re-posts it so it shows up)
-def update_freeform():
+
+@app.route('/api/resumes/freeform/<history_id>', methods=['PUT']) #SPRINT 3 STRETCH
+def update_freeform(history_id):
     user_id = request.headers.get('Email', None)
+    if not user_id:
+        return jsonify({"error": "Missing user ID"}), 400
+
+    new_text = request.json.get('text')
+    if not new_text:
+        return jsonify({"error": "Missing text field"}), 400
+
+    # Check if the document exists
+    existing_entry = user_freeform_collection.find_one({"history_id": history_id})
+    if not existing_entry:
+        return jsonify({"error": "History ID not found"}), 404
+
+    if existing_entry["user_id"] != user_id:
+        return jsonify({"error": "Access forbidden: entry does not belong to this user"}), 403
+
+    # Update the document
+    user_freeform_collection.update_one(
+        {"history_id": history_id},
+        {
+            "$set": {
+                "text": new_text,
+                "timestamp": datetime.now(timezone.utc)
+            }
+        }
+    )
+
+    new_careers_json = ai_freeform(new_text)
+
+
+    db_store(new_careers_json)
+
+
     return jsonify({
-        'test': 'test',
+        "history_id": history_id,
+        "status": "updated"
     }), 200
 
 

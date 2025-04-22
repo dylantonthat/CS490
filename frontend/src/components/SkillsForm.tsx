@@ -9,9 +9,24 @@ export default function SkillsForm() {
 
   useEffect(() => {
     if (!user) return;
+
     axios
-      .get("/api/resumes/skills", { headers: { Email: user.email! } })
-      .then((res) => setSkills(res.data || []));
+      .get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/skills`, {
+        headers: { Email: user.email! },
+      })
+      .then((res) => {
+        console.log("Skills response:", res.data);
+        const data = res.data;
+        const fetchedSkills = Array.isArray(data)
+          ? data
+          : Array.isArray(data.skills)
+          ? data.skills
+          : [];
+        setSkills(fetchedSkills);
+      })
+      .catch((err) =>
+        console.error("Error fetching skills data:", err)
+      );
   }, [user]);
 
   const handleAdd = async () => {
@@ -22,7 +37,7 @@ export default function SkillsForm() {
     setSkills(newSkills);
     setInput("");
     await axios.post(
-      "/api/resumes/skills",
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/skills`,
       { skills: newSkills },
       { headers: { Email: user.email! } }
     );

@@ -25,7 +25,7 @@ export default function EducationView() {
 
   useEffect(() => {
     if (!user) return;
-    axios.get("http://localhost:5000/api/resumes/education", {
+    axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/education`, {
       headers: { Email: `${user.email}` },
     })
       .then((res) => setEducation(res.data.education || []))
@@ -54,7 +54,7 @@ export default function EducationView() {
       if (editingIndex !== null) {
         const updated = [...education];
         updated[editingIndex] = formData as Education;
-        await axios.put(`http://localhost:5000/api/resumes/education/${editingIndex}`, 
+        await axios.put(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/education/${editingIndex}`, 
             formData,
             {headers: { Email: `${user.email}` } }
         );
@@ -80,7 +80,7 @@ export default function EducationView() {
     if (!user) return;
 
     try {
-      await axios.delete("http://localhost:5000/api/resumes/education", {
+      await axios.delete(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/education`, {
         data: { index },
         headers: { Email: `${user.email}` }
       });

@@ -15,7 +15,7 @@ export default function CareerForm() {
     const user_email = user.email;
     try {
       setStatus("Submitting...");
-      await axios.post("http://localhost:5000/api/resumes/history", { text: entry }, {
+      await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/history`, { text: entry }, {
         headers: {
           Email: `${user_email}`,
         }

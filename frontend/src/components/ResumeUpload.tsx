@@ -18,7 +18,7 @@ export default function ResumeUpload() {
 
     try {
       setStatus("Uploading...");
-      await axios.post("http://localhost:5000/api/resumes/upload", formData, {
+      await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/upload`, formData, {
         headers: {
           Email: `${user_email}`,
         }

@@ -14,7 +14,7 @@ export default function ContactForm() {
   useEffect(() => {
     if (!user) return;
     axios
-      .get("/api/resumes/contact", { headers: { Email: user.email! } })
+      .get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/contact`, { headers: { Email: user.email! } })
       .then((res) => setContact(res.data))
       .catch(() => {});
   }, [user]);
@@ -26,7 +26,7 @@ export default function ContactForm() {
 
   const handleSubmit = async () => {
     if (!user) return;
-    await axios.put(`/api/resumes/contact:${user.email!}`, contact, {
+    await axios.put(`${process.env.NEXT_PUBLIC_API_BASE_URL}api/resumes/contact:${user.email!}`, contact, {
       headers: { Email: user.email! },
     });
   };
