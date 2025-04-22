@@ -73,7 +73,7 @@ function HomePage() {
         {/* Parsed Resume Text */}
         <div className="max-w-7xl mx-auto space-y-12">
           <div>
-            <h2 className="text-2xl font-semibold mb-4">View Parsed Resume Text</h2>
+            <h2 className="text-2xl font-semibold mb-4">View Generated Resume Text</h2>
             <ResumeRawView />
           </div>
         </div>
