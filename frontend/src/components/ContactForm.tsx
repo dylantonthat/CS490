@@ -8,15 +8,19 @@ export default function ContactForm() {
     name: "",
     email: "",
     phone: "",
-    location: "",
   });
 
   useEffect(() => {
     if (!user) return;
     axios
-      .get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/contact`, { headers: { Email: user.email! } })
-      .then((res) => setContact(res.data))
-      .catch(() => {});
+      .get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/contact`, {
+        headers: { Email: user.email! },
+      })
+      .then((res) => {
+        console.log("Contact data response:", res.data);
+        setContact(res.data.contact || {});
+      })
+      .catch((err) => console.error("Failed to fetch contact data:", err));
   }, [user]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -26,11 +30,13 @@ export default function ContactForm() {
 
   const handleSubmit = async () => {
     if (!user) return;
-    await axios.put(`${process.env.NEXT_PUBLIC_API_BASE_URL}api/resumes/contact:${user.email!}`, contact, {
-      headers: { Email: user.email! },
-    });
+    await axios.put(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/contact`,
+      { contact },
+      { headers: { Email: user.email! } }
+    );
   };
-
+  
   if (isLoading || !user) return null;
 
   return (
@@ -39,7 +45,7 @@ export default function ContactForm() {
         Contact Information
       </h2>
       <div className="space-y-4">
-        {(["name", "email", "phone", "location"] as const).map((field) => (
+        {(["name", "email", "phone"] as const).map((field) => (
           <input
             key={field}
             type="text"
