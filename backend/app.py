@@ -131,7 +131,7 @@ Do not guess missing values, leave them blank.
 Use the exact parameter names.
 """
 
-    response = client.chat.completions.create(model="gpt-4o",
+    response = client.chat.completions.create(model="gpt-3.5-turbo", # model="gpt-4o", (switched out for cheaper testing)
     messages=[
         {"role": "system", "content": "You are a smart resume merging assistant."},
         {"role": "user", "content": prompt}
@@ -201,7 +201,7 @@ Here's the resume text:
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-3.5-turbo", # model="gpt-4o", (switched out for cheaper testing)
             messages=[
                 {"role": "system", "content": "You are a helpful assistant that extracts structured data from resumes."},
                 {"role": "user", "content": prompt}
@@ -226,158 +226,158 @@ Here's the resume text:
         print("OpenAI API error:", e)
         return None
 
-def ai_freeform(text):
-    prompt = f"""
-You are an intelligent parser for resumes. 
-Given the raw text of career history information, extract the following structured information in JSON format.
+# def ai_freeform(text): #OBSOLETE FUNCTION
+#     prompt = f"""
+# You are an intelligent parser for resumes. 
+# Given the raw text of career history information, extract the following structured information in JSON format.
 
-Return a JSON object with this structure:
+# Return a JSON object with this structure:
 
-{{
-  "contact": {{
-    "name": "",
-    "email": "",
-    "phone": ""
-  }},
-  "education": [
-    {{
-      "degree": "",
-      "institution": "",
-      "startDate": "",
-      "endDate": "",
-      "gpa": ""
-    }}
-  ],
-  "career": [
-    {{
-      "title": "",
-      "company": "",
-      "startDate": "",
-      "endDate": "",
-      "responsibilities": "",
-      "accomplishments": ["", ""]
-    }}
-  ],
-  "skills": ["", ""]
-}}
+# {{
+#   "contact": {{
+#     "name": "",
+#     "email": "",
+#     "phone": ""
+#   }},
+#   "education": [
+#     {{
+#       "degree": "",
+#       "institution": "",
+#       "startDate": "",
+#       "endDate": "",
+#       "gpa": ""
+#     }}
+#   ],
+#   "career": [
+#     {{
+#       "title": "",
+#       "company": "",
+#       "startDate": "",
+#       "endDate": "",
+#       "responsibilities": "",
+#       "accomplishments": ["", ""]
+#     }}
+#   ],
+#   "skills": ["", ""]
+# }}
 
-Since we are extracting only career history, all fields under contact and education must be left blank.
-You can also extract skills from the freeform text and store them in skills (ex. Python, Javascript). However if there are no notable skills you can leave it blank.
-It must be formatted like this to be used in future steps involving resumes.
-Only include fields you can extract.
-Do not guess missing values, leave them blank.
-Use the exact parameter names.
+# Since we are extracting only career history, all fields under contact and education must be left blank.
+# You can also extract skills from the freeform text and store them in skills (ex. Python, Javascript). However if there are no notable skills you can leave it blank.
+# It must be formatted like this to be used in future steps involving resumes.
+# Only include fields you can extract.
+# Do not guess missing values, leave them blank.
+# Use the exact parameter names.
 
-The career history text can have multiple instances of careers. Each should be stored as a list following the JSON format.
+# The career history text can have multiple instances of careers. Each should be stored as a list following the JSON format.
 
-It is important to distinguish responsibility and accomplishments for each career.
-The responsibility should be their main job description for that task, there should only be one.
-The accomplishments should be a list of accomplishments they were able to achieve, there can be multiple
-Either of these can be blank.
-For example, a responsibility would be: created QA tests for the development team to use.
-An accomplishment would be: cut costs by 25% by implementing a new feature.
-It is up to you to determine what is a feature and what is an accomplishment.
-If none of the sentences under a career seems like the main responsibility, then leave responsibility blank and put them all in accomplishments as a list.
+# It is important to distinguish responsibility and accomplishments for each career.
+# The responsibility should be their main job description for that task, there should only be one.
+# The accomplishments should be a list of accomplishments they were able to achieve, there can be multiple
+# Either of these can be blank.
+# For example, a responsibility would be: created QA tests for the development team to use.
+# An accomplishment would be: cut costs by 25% by implementing a new feature.
+# It is up to you to determine what is a feature and what is an accomplishment.
+# If none of the sentences under a career seems like the main responsibility, then leave responsibility blank and put them all in accomplishments as a list.
 
-Here's the career history text:
+# Here's the career history text:
 
-\"\"\"{text}\"\"\"
-"""
-    try:
-        response = client.chat.completions.create(model="gpt-4o",
-        messages=[
-            {"role": "system", "content": "You are a helpful assistant that extracts structured career history data from free-form text."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.2)
+# \"\"\"{text}\"\"\"
+# """
+#     try:
+#         response = client.chat.completions.create(model="gpt-3.5-turbo", # model="gpt-4o", (switched out for cheaper testing)
+#         messages=[
+#             {"role": "system", "content": "You are a helpful assistant that extracts structured career history data from free-form text."},
+#             {"role": "user", "content": prompt}
+#         ],
+#         temperature=0.2)
 
-        content = response.choices[0].message.content.strip()
-        # Try parsing it as JSON
+#         content = response.choices[0].message.content.strip()
+#         # Try parsing it as JSON
 
-        if content.startswith("```"):
-            content = re.sub(r"^```[a-zA-Z]*\n?", "", content)
-            content = content.rstrip("```").strip()
+#         if content.startswith("```"):
+#             content = re.sub(r"^```[a-zA-Z]*\n?", "", content)
+#             content = content.rstrip("```").strip()
 
-        parsed = json.loads(content)
-        return parsed
+#         parsed = json.loads(content)
+#         return parsed
 
-    except json.JSONDecodeError as e:
-        print("Failed to parse JSON:", e)
-        print("Raw content:", content)
-        return None
-    except Exception as e:
-        print("OpenAI API error:", e)
-        return None
+#     except json.JSONDecodeError as e:
+#         print("Failed to parse JSON:", e)
+#         print("Raw content:", content)
+#         return None
+#     except Exception as e:
+#         print("OpenAI API error:", e)
+#         return None
 
-def ai_skills(text): #might need to be changed if using a form instead
-    prompt = f"""
-You are an intelligent parser for resumes. 
-Given the raw text of different skills, extract the following structured information in JSON format.
+# def ai_skills(text): #might need to be changed if using a form instead
+#     prompt = f"""
+# You are an intelligent parser for resumes. 
+# Given the raw text of different skills, extract the following structured information in JSON format.
 
-Return a JSON object with this structure:
+# Return a JSON object with this structure:
 
-{{
-  "contact": {{
-    "name": "",
-    "email": "",
-    "phone": ""
-  }},
-  "education": [
-    {{
-      "degree": "",
-      "institution": "",
-      "startDate": "",
-      "endDate": "",
-      "gpa": ""
-    }}
-  ],
-  "career": [
-    {{
-      "title": "",
-      "company": "",
-      "startDate": "",
-      "endDate": "",
-      "responsibilities": "",
-      "accomplishments": ["", ""]
-    }}
-  ],
-  "skills": ["", ""]
-}}
+# {{
+#   "contact": {{
+#     "name": "",
+#     "email": "",
+#     "phone": ""
+#   }},
+#   "education": [
+#     {{
+#       "degree": "",
+#       "institution": "",
+#       "startDate": "",
+#       "endDate": "",
+#       "gpa": ""
+#     }}
+#   ],
+#   "career": [
+#     {{
+#       "title": "",
+#       "company": "",
+#       "startDate": "",
+#       "endDate": "",
+#       "responsibilities": "",
+#       "accomplishments": ["", ""]
+#     }}
+#   ],
+#   "skills": ["", ""]
+# }}
 
-Since we are extracting only skills, all fields under contact, education, and career must be left blank.
-It must be formatted like this to be used in future steps involving resumes.
-Only include fields you can extract.
-Use the exact parameter names.
+# Since we are extracting only skills, all fields under contact, education, and career must be left blank.
+# It must be formatted like this to be used in future steps involving resumes.
+# Only include fields you can extract.
+# Use the exact parameter names.
 
-Here's the freeform skills text:
+# Here's the freeform skills text:
 
-\"\"\"{text}\"\"\"
-"""
-    try:
-        response = client.chat.completions.create(model="gpt-4o",
-        messages=[
-            {"role": "system", "content": "You are a helpful assistant that extracts skills from free-form text."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.2)
+# \"\"\"{text}\"\"\"
+# """
+#     try:
+#         response = client.chat.completions.create(model="gpt-3.5-turbo", # model="gpt-4o", (switched out for cheaper testing)
+#         messages=[
+#             {"role": "system", "content": "You are a helpful assistant that extracts skills from free-form text."},
+#             {"role": "user", "content": prompt}
+#         ],
+#         temperature=0.2)
 
-        content = response.choices[0].message.content.strip()
-        # Try parsing it as JSON
+#         content = response.choices[0].message.content.strip()
+#         # Try parsing it as JSON
 
-        if content.startswith("```"):
-            content = re.sub(r"^```[a-zA-Z]*\n?", "", content)
-            content = content.rstrip("```").strip()
+#         if content.startswith("```"):
+#             content = re.sub(r"^```[a-zA-Z]*\n?", "", content)
+#             content = content.rstrip("```").strip()
 
-        parsed = json.loads(content)
-        return parsed
+#         parsed = json.loads(content)
+#         return parsed
 
-    except json.JSONDecodeError as e:
-        print("Failed to parse JSON:", e)
-        print("Raw content:", content)
-        return None
-    except Exception as e:
-        print("OpenAI API error:", e)
-        return None
+#     except json.JSONDecodeError as e:
+#         print("Failed to parse JSON:", e)
+#         print("Raw content:", content)
+#         return None
+#     except Exception as e:
+#         print("OpenAI API error:", e)
+#         return None
 
 def ai_resume(job_text, hist_text, freeform_text, resume_id):
     prompt = f"""
@@ -443,7 +443,7 @@ INPUTTED VALUES:
 """
     try:
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-3.5-turbo", # model="gpt-4o", (switched out for cheaper testing)
             messages=[
                 {"role": "system", "content": "You are a helpful assistant that tailors resumes for different job descriptions."},
                 {"role": "user", "content": prompt}
