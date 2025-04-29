@@ -55,16 +55,16 @@ export default function EducationView() {
         const updated = [...education];
         updated[editingIndex] = formData as Education;
         await axios.put(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/education/${editingIndex}`, 
-            formData,
-            {headers: { Email: `${user.email}` } }
+          formData,
+          {headers: { Email: `${user.email}` } }
         );
         setEducation(updated);
         setMessage("Education updated successfully.");
       } else {
-        const res = await axios.post("http://localhost:5000/api/resumes/education", {
-          headers: { Email: `${user.email}` },
-          ...formData
-        });
+        const res = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/education`, 
+          formData,
+          {headers: { Email: `${user.email}` }}
+        );
         setEducation((prev) => [...prev, res.data]);
         setMessage("Education added successfully.");
       }

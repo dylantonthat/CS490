@@ -79,19 +79,18 @@ export default function CareerComponent() {
       if (!user) return;
 
       if (editingIndex !== null) {
+        const updated = [...jobs];
+        updated[editingIndex] = formData as Job;
         await axios.put(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/history/${editingIndex}`, 
           formData,
           {headers: { Email: `${user.email}` } }
         );
-        const updated = [...jobs];
-        updated[editingIndex] = formData as Job;
         setJobs(updated);
         setMessage('Job updated successfully.');
       } else {
-        const res = await axios.post(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/history`,
+        const res = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/history/upload`,
           formData,
-          { headers: { Email: `${user.email}` } }
+          {headers: { Email: `${user.email}` } }
         );
         setJobs((prev) => [...prev, res.data]);
         setMessage('Job added successfully.');

@@ -8,29 +8,45 @@ export default function ContactForm() {
     name: "",
     email: "",
     phone: "",
-    location: "",
   });
 
   useEffect(() => {
     if (!user) return;
     axios
-      .get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/contact`, { headers: { Email: user.email! } })
-      .then((res) => setContact(res.data))
-      .catch(() => {});
+      .get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/contact`, {
+        headers: { Email: user.email! },
+      })
+      .then((res) => {
+        console.log("Contact data response:", res.data);
+        setContact(res.data.contact || {});
+      })
+      .catch((err) => console.error("Failed to fetch contact data:", err));
   }, [user]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setContact((prev) => ({ ...prev, [name]: value }));
   };
+  const [status, setStatus] = useState("");
 
   const handleSubmit = async () => {
     if (!user) return;
-    await axios.put(`${process.env.NEXT_PUBLIC_API_BASE_URL}api/resumes/contact:${user.email!}`, contact, {
-      headers: { Email: user.email! },
-    });
-  };
 
+    try {
+      setStatus("Submitting...");
+      await axios.put(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/contact`,
+        { contact },
+        { headers: { Email: user.email! } }
+      );
+      setStatus("Contact info saved!");
+
+    } catch (err) {
+      setStatus("Submission failed.");
+    }
+
+  };
+  
   if (isLoading || !user) return null;
 
   return (
@@ -39,7 +55,7 @@ export default function ContactForm() {
         Contact Information
       </h2>
       <div className="space-y-4">
-        {(["name", "email", "phone", "location"] as const).map((field) => (
+        {(["name", "email", "phone"] as const).map((field) => (
           <input
             key={field}
             type="text"
@@ -56,6 +72,7 @@ export default function ContactForm() {
         >
           Save Contact Info
         </button>
+        <p className="text-sm text-gray-600 dark:text-gray-400">{status}</p>
       </div>
     </div>
   );
