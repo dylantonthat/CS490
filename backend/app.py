@@ -22,6 +22,10 @@ RESUME_FAILED = {}
 RESUME_FAILED_JSON = {}
 
 ALLOWED_EXTENSIONS = {'docx', 'pdf'}
+#Formatting types
+ALLOWED_FORMATS = {'markdown', 'pdf', 'latex'}
+ALLOWED_TEMPLATES = {'modern', 'simple'} #temp names
+ALLOWED_STYLES = {'compact', 'expanded'} #temp names
 
 clientDB = MongoClient("mongodb+srv://kdv:fp4ZIfpKYM3zghYX@kdv-cluster.wn6dsp1.mongodb.net/?retryWrites=true&w=majority&appName=kdv-cluster")
 db = clientDB['cs490_project']
@@ -474,13 +478,10 @@ INPUTTED VALUES:
         return None
 
 # functions for formatting resumes
-def plain_format():
+def markdown_format(resume_json):
     return
 
-def latex_format():
-    return
-
-def pdf_format():
+def template_format(resume_json, template_id, style_id, file_type):
     return
 
 
@@ -1175,14 +1176,19 @@ def resume_format():
     resume_id = data.get('resumeId')
     if not resume_id:
         return jsonify({'error': 'invalid resume id'}), 400
-    format_type = data.get('formatType')
-    template_id = data.get('templateId')
-    template_id = data.get('styleId')
+    format_type = data.get('formatType').lower()
+    template_id = data.get('templateId').lower()
+    style_id = data.get('styleId').lower()
 
-    resume = user_resume_gen_collection.find_one({'user_id':user_id},{'_id':0, 'user_id':0, 'resume_id':0, 'status':0})
+    resume = user_resume_gen_collection.find_one({'user_id':user_id},{'_id':0, 'user_id':0, 'resume_id':0, 'job_id':0, 'status':0})
+
+    if not format_type or format_type=='markdown':
+        markdown_format(resume)
+    else:
+        template_format(resume, template_id, style_id, format_type)
 
     return jsonify({
-        "test": "test"
+        "test": resume,
     }), 200
 
 @app.route('/api/resumes/download/<formattedResumeId>', methods=['GET']) #CORE
