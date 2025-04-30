@@ -1179,6 +1179,9 @@ def resume_format():
     format_type = data.get('formatType').lower()
     template_id = data.get('templateId').lower()
     style_id = data.get('styleId').lower()
+    
+    if format_type not in ALLOWED_FORMATS or template_id not in ALLOWED_TEMPLATES or style_id not in ALLOWED_STYLES:
+        return jsonify({"error": "invalid request parameters"}), 400
 
     resume = user_resume_gen_collection.find_one({'user_id':user_id},{'_id':0, 'user_id':0, 'resume_id':0, 'job_id':0, 'status':0})
 
