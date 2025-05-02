@@ -23,9 +23,9 @@ RESUME_FAILED_JSON = {}
 
 ALLOWED_EXTENSIONS = {'docx', 'pdf'}
 #Formatting types
-ALLOWED_FORMATS = {'markdown', 'pdf', 'latex'}
+ALLOWED_FORMATS = {'plain', 'markdown', 'html', 'pdf', 'docx'}
 ALLOWED_TEMPLATES = {'modern', 'simple'} #temp names
-ALLOWED_STYLES = {'compact', 'expanded'} #temp names
+ALLOWED_STYLES = {'compact', 'expanded', 'colors'} #temp names
 
 clientDB = MongoClient("mongodb+srv://kdv:fp4ZIfpKYM3zghYX@kdv-cluster.wn6dsp1.mongodb.net/?retryWrites=true&w=majority&appName=kdv-cluster")
 db = clientDB['cs490_project']
@@ -478,7 +478,17 @@ INPUTTED VALUES:
         return None
 
 # functions for formatting resumes
-def markdown_format(resume_json):
+def simple_format(resume_json, file_type):
+    resume_fields = ['contact','education', 'career','skills']
+    for field in resume_fields:
+        info = resume_json.get(field)
+        print(field.title())
+        for key,value in info.items():
+            if isinstance(value, list):
+                for i in value:
+                    print(f"\t-{i}")
+            else:
+                print(f"-{key}: {value}")
     return
 
 def template_format(resume_json, template_id, style_id, file_type):
@@ -1176,17 +1186,18 @@ def resume_format():
     resume_id = data.get('resumeId')
     if not resume_id:
         return jsonify({'error': 'invalid resume id'}), 400
-    format_type = data.get('formatType').lower()
-    template_id = data.get('templateId').lower()
-    style_id = data.get('styleId').lower()
+    format_type = data.get('formatType')
+    template_id = data.get('templateId')
+    style_id = data.get('styleId')
     
-    if format_type not in ALLOWED_FORMATS or template_id not in ALLOWED_TEMPLATES or style_id not in ALLOWED_STYLES:
-        return jsonify({"error": "invalid request parameters"}), 400
+    # if format_type not in ALLOWED_FORMATS or template_id not in ALLOWED_TEMPLATES or style_id not in ALLOWED_STYLES or not format_type:
+    #     return jsonify({"error": "invalid request parameters"}), 400
 
     resume = user_resume_gen_collection.find_one({'user_id':user_id},{'_id':0, 'user_id':0, 'resume_id':0, 'job_id':0, 'status':0})
 
+
     if not format_type or format_type=='markdown':
-        markdown_format(resume)
+        simple_format(resume, format_type)
     else:
         template_format(resume, template_id, style_id, format_type)
 
@@ -1244,7 +1255,7 @@ def templates():
         "test": "test"
     }), 200
 
-# ***** DEBUGGING APIS
+# ***** DEBUGGING APIS ********************************************************
 @app.route('/api/testdb/info', methods=['GET']) #FOR TESTING/DEBUGGING PURPOSES ONLY, SHOULD NOT BE ACCESSIBLE THRU FRONT END
 def get_all_users():
     info = user_info_collection.find()
