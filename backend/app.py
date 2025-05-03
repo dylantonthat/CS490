@@ -14,6 +14,9 @@ import tempfile
 import subprocess
 from bson.json_util import dumps
 from datetime import datetime, timezone
+import markdown
+from weasyprint import HTML
+import pypandoc
 
 client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY")) #API KEY MUST BE SET IN ENVIRONMENT
 
@@ -23,9 +26,10 @@ RESUME_FAILED_JSON = {}
 
 ALLOWED_EXTENSIONS = {'docx', 'pdf'}
 #Formatting types
-ALLOWED_FORMATS = {'plain', 'markdown', 'html', 'pdf', 'docx'}
-ALLOWED_TEMPLATES = {'modern', 'simple'} #temp names
-ALLOWED_STYLES = {'compact', 'expanded', 'colors'} #temp names
+# ALLOWED_FORMATS = {'plain', 'markdown', 'html', 'pdf', 'docx'}
+ALLOWED_FORMATS = {'txt', 'md', 'html', 'pdf', 'docx', None}
+ALLOWED_TEMPLATES = {'modern', 'simple', None} #temp names
+ALLOWED_STYLES = {'compact', 'expanded', 'colors', None} #temp names
 
 clientDB = MongoClient("mongodb+srv://kdv:fp4ZIfpKYM3zghYX@kdv-cluster.wn6dsp1.mongodb.net/?retryWrites=true&w=majority&appName=kdv-cluster")
 db = clientDB['cs490_project']
@@ -33,6 +37,7 @@ fs = gridfs.GridFS(db)
 user_info_collection = db['user_info']
 user_resume_collection = db['resumes']
 user_resume_gen_collection = db['resumes_gen']
+user_resume_format_collection = db['resumes_format']
 user_freeform_collection = db['freeform']
 user_job_desc_collection = db['job_desc']
 
@@ -478,20 +483,105 @@ INPUTTED VALUES:
         return None
 
 # functions for formatting resumes
-def simple_format(resume_json, file_type):
-    resume_fields = ['contact','education', 'career','skills']
-    for field in resume_fields:
-        info = resume_json.get(field)
-        print(field.title())
-        for key,value in info.items():
-            if isinstance(value, list):
-                for i in value:
-                    print(f"\t-{i}")
-            else:
-                print(f"-{key}: {value}")
-    return
+def plain_format(resume_json): # .txt
+    # extracting data
+    contact = resume_json['contact']
+    education = resume_json['education']
+    career = resume_json['career']
+    skills = resume_json['skills']
+    
+    # string that goes in the txt file
+    format_string = f"""{contact['name']} Resume
+Contact
+ - Email: {contact['email']}
+ - Phone: {contact['phone']}
 
-def template_format(resume_json, template_id, style_id, file_type):
+Education"""
+
+    for edu_entry in education:
+        entry = f"""
+ - {edu_entry['institution']}
+\t - {edu_entry['degree']} 
+\t - {edu_entry['startDate']} - {edu_entry['endDate']}
+\t - {edu_entry['gpa']}"""
+        format_string = format_string + entry
+
+    format_string = format_string + '\n\nCareers'
+    for job_entry in career:
+        entry = f"""
+- {job_entry['title']}        
+\t - {job_entry['company']}
+\t - {job_entry['startDate']} - {job_entry['endDate']}
+\t - Responsibilities:
+\t\t - {job_entry['responsibilities']}
+\t - Accomplishments:"""
+        for accomp in job_entry['accomplishments']:
+            entry = entry + f"\n\t\t - {accomp}"
+        format_string = format_string + entry
+
+    format_string = format_string + f"""
+\nSkills
+ - {', '.join(skills)}    
+"""
+    print(format_string)
+
+    return format_string
+
+def markdown_format(resume_json, file_type): # .md .html .pdf .docx
+    # extracting data
+    contact = resume_json['contact']
+    education = resume_json['education']
+    career = resume_json['career']
+    skills = resume_json['skills']
+    
+    # string that goes in the txt file
+    format_string = f"""# {contact['name']} Resume
+## Contact
+ - **Email**: {contact['email']}
+ - **Phone**: {contact['phone']}
+
+## Education"""
+
+    for edu_entry in education:
+        entry = f"""
+ - **{edu_entry['institution']}**
+\t - {edu_entry['degree']} 
+\t - {edu_entry['startDate']} - {edu_entry['endDate']}
+\t - GPA: {edu_entry['gpa']}"""
+        format_string = format_string + entry
+
+    format_string = format_string + '\n\n## Careers'
+    for job_entry in career:
+        entry = f"""
+- **{job_entry['title']}**        
+\t - {job_entry['company']}
+\t - {job_entry['startDate']} - {job_entry['endDate']}
+\t - **Responsibilities**:
+\t\t - {job_entry['responsibilities']}
+\t - **Accomplishments**:"""
+        for accomp in job_entry['accomplishments']:
+            entry = entry + f"\n\t\t - {accomp}"
+        format_string = format_string + entry
+
+    format_string = format_string + f"""
+\n## Skills
+ - {', '.join(skills)}    
+"""
+    print(format_string)
+
+    format_html = markdown.markdown(format_string)
+    if file_type == 'html':
+        resume_format = bytes(format_html, encoding='utf-8')
+    elif file_type == 'pdf':
+        resume_format = HTML(string=format_html).write_pdf()
+    elif file_type == 'docx':
+        resume_format = pypandoc.convert_text(format_string, 'docx', format='md')
+    else:
+        resume_format = bytes(format_string, encoding='utf-8')
+
+    return resume_format
+
+def template_format(resume_json, template_id, style_id, file_type): # .html .pdf .docx (if template selected)
     return
 
 
@@ -1175,6 +1265,7 @@ def update_freeform(history_id):
 
 
 # ***** SPRINT 4 APIS BELOW ********************************************************
+#TODO:
 @app.route('/api/resumes/format', methods=['POST']) #CORE
 def resume_format():
     #STRETCH: PDF and LaTeX output support
@@ -1182,6 +1273,7 @@ def resume_format():
     if not user_id:
         return jsonify({"error": "Missing user ID"}), 401
     
+    # Grabbing data from request body
     data = request.get_json()
     resume_id = data.get('resumeId')
     if not resume_id:
@@ -1190,19 +1282,34 @@ def resume_format():
     template_id = data.get('templateId')
     style_id = data.get('styleId')
     
-    # if format_type not in ALLOWED_FORMATS or template_id not in ALLOWED_TEMPLATES or style_id not in ALLOWED_STYLES or not format_type:
-    #     return jsonify({"error": "invalid request parameters"}), 400
+    if (format_type not in ALLOWED_FORMATS) or (template_id not in ALLOWED_TEMPLATES) or (style_id not in ALLOWED_STYLES):
+        return jsonify({"error": "invalid request parameters"}), 400
 
     resume = user_resume_gen_collection.find_one({'user_id':user_id},{'_id':0, 'user_id':0, 'resume_id':0, 'job_id':0, 'status':0})
 
 
-    if not format_type or format_type=='markdown':
-        simple_format(resume, format_type)
+    if format_type == 'txt':
+        resume_content = plain_format(resume)
+    elif format_type in ['md', 'html', 'pdf', 'docx', None]:
+        resume_content = markdown_format(resume, format_type)
     else:
         template_format(resume, template_id, style_id, format_type)
 
+    with tempfile.TemporaryDirectory() as temp_dir:
+        input_path = os.path.join(temp_dir, f'resume.{format_type}')
+        # Reading file and writing to temp temp input path
+        file_id = fs.put(resume_content, filename=f"resume.{format_type}")
+
+    resume_id = str(uuid.uuid4())
+    user_resume_format_collection.insert_one({
+        'formatted_resume_id': resume_id,
+        'user_id': user_id,
+        'file_id': file_id,
+        'filename': f"resume.{format_type}",
+        'content_type': format_type,
+    })
     return jsonify({
-        "test": resume,
+        "test": resume_id,
     }), 200
 
 @app.route('/api/resumes/download/<formattedResumeId>', methods=['GET']) #CORE
@@ -1210,11 +1317,29 @@ def download_resume(formattedResumeId):
     user_id = request.headers.get('Email', None)
     if not user_id:
         return jsonify({"error": "Missing user ID"}), 401
-    
-    return jsonify({
-        "test": "test"
-    }), 200
+    print(formattedResumeId)
+    resume_meta = user_resume_format_collection.find_one({'formatted_resume_id': formattedResumeId})
+    if not resume_meta:
+        return jsonify({'error': 'Resume not found'}), 404
 
+    file_id = resume_meta.get('file_id')
+    if not file_id:
+        return jsonify({'error': 'File ID missing'}), 500
+
+    try:
+        file_data = fs.get(file_id)
+    except gridfs.errors.NoFile:
+        return jsonify({'error': 'File not found in GridFS'}), 404
+
+    return Response(
+        file_data.read(),
+        mimetype=resume_meta.get('content_type'),
+        headers={
+            "Content-Disposition": f"inline; filename={resume_meta.get('filename')}"
+        }
+    )
+
+#TODO:
 @app.route('/api/jobs/advice', methods=['POST']) #CORE
 def job_advice():
     user_id = request.headers.get('Email', None)
@@ -1225,6 +1350,7 @@ def job_advice():
         "test": "test"
     }), 200
 
+#TODO:
 @app.route('/api/user/job-applications', methods=['GET']) #STRETCH
 def get_job_apps():
     user_id = request.headers.get('Email', None)
@@ -1235,6 +1361,7 @@ def get_job_apps():
         "test": "test"
     }), 200
 
+#TODO:
 @app.route('/api/user/job-applications', methods=['POST']) #STRETCH
 def post_job_apps():
     user_id = request.headers.get('Email', None)
@@ -1245,6 +1372,7 @@ def post_job_apps():
         "test": "test"
     }), 200
 
+#TODO:
 @app.route('/api/templates', methods=['GET']) #STRETCH
 def templates():
     user_id = request.headers.get('Email', None)
