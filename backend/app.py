@@ -1409,5 +1409,10 @@ def get_all_resumes_gen():
     resumes_gen = user_resume_gen_collection.find()
     return dumps(resumes_gen), 200
 
+@app.route('/api/testdb/resumesformat', methods=['GET']) #FOR TESTING/DEBUGGING PURPOSES ONLY, SHOULD NOT BE ACCESSIBLE THRU FRONT END
+def get_all_resumes_format():
+    resumes_format = user_resume_format_collection.find()
+    return dumps(resumes_format), 200
+
 if __name__ == '__main__':
     app.run(debug=True)
