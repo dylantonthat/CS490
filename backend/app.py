@@ -482,6 +482,46 @@ INPUTTED VALUES:
         print("OpenAI API error:", e)
         return None
 
+def ai_advice(resume, job_desc):
+    prompt = f"""
+You are a career advisor AI. Analyze the resume and job description provided below. Then return clear, practical, and professional advice in plain text that helps the candidate improve their resume and increase their chances of landing the job.
+
+Your advice should include:
+• Suggestions for improvements or missing content in the resume.
+• Insights into how well the resume matches the job description.
+• Tips for tailoring the resume or preparing for interviews.
+
+Resume (structured JSON):
+{json.dumps(resume, indent=2)}
+
+Job Description (plain text):
+{job_desc}
+
+Write your response directly to the user in a friendly but professional tone. Do not include JSON, markdown, or headings — only the plain text advice.
+""".strip()
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo", # model="gpt-4o", (switched out for cheaper testing)
+            messages=[
+                {"role": "system", "content": "You are a helpful and experienced career advisor who gives specific and personalized guidance based on a user's resume and a job posting."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7 #higher to make advice more natural-sounding and stuff
+        )
+
+        content = response.choices[0].message.content.strip()
+
+        if content.startswith("```"):
+            content = re.sub(r"^```[a-zA-Z]*\n?", "", content)
+            content = content.rstrip("```").strip()
+
+        return content
+
+    except Exception as e:
+        print("OpenAI API error:", e)
+        return None
+
 # functions for formatting resumes
 def plain_format(resume_json): # .txt
     # extracting data
@@ -1346,8 +1386,45 @@ def job_advice():
     if not user_id:
         return jsonify({"error": "Missing user ID"}), 401
     
+    #verify no missing fields
+    jobId = request.json.get('jobId')
+    if not jobId:
+        return jsonify({"error": "Missing jobId field"}), 400
+    resumeId = request.json.get('resumeId')
+    if not resumeId:
+        return jsonify({"error": "Missing resumeId field"}), 400
+    print("good request\n\n") #debugging
+
+    #verify resume
+    resume = user_resume_gen_collection.find_one({"resume_id": resumeId})
+    if not resume:
+        return jsonify({"error": "Resume not found"}), 404
+    if resume.get('user_id') != user_id:
+        return jsonify({"error": "Forbidden: Resume does not belong to user"}), 403
+    filtered_resume = {
+        "career": resume.get("career", []),
+        "contact": resume.get("contact", {}),
+        "education": resume.get("education", []),
+        "skills": resume.get("skills", [])
+    }
+    print("RESUME GOTTEN: ", filtered_resume, "\n\n") #debugging
+
+    #verify job desc
+    job_desc = user_job_desc_collection.find_one({"jobs.job_id": jobId})
+    if not job_desc:
+        return jsonify({"error": "Job description not found"}), 404
+    if job_desc.get('user_id') != user_id:
+        return jsonify({"error": "Forbidden: Job does not belong to user"}), 403
+    job_entry = next((job for job in job_desc['jobs'] if job['job_id'] == jobId), None)
+    if not job_entry:
+        return jsonify({"error": "Job description not found"}), 404
+    job_text = job_entry.get("text", "")
+    print("JOB DESC GOTTEN: ", job_text, "\n\n") #debugging
+
+    advice = ai_advice(filtered_resume, job_text)
+
     return jsonify({
-        "test": "test"
+        "advice": advice,
     }), 200
 
 #TODO:
