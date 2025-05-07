@@ -1496,9 +1496,30 @@ def get_job_apps():
     if not user_id:
         return jsonify({"error": "Missing user ID"}), 401
     
-    return jsonify({
-        "test": "test"
-    }), 200
+    applications_cursor = user_application_collection.find(
+        {"userId": user_id},
+        {"_id": 0, "applicationId": 1, "resumeId": 1, "jobId": 1, "appliedAt": 1}
+    ).sort("appliedAt", -1)
+
+    applications = []
+    for app in applications_cursor:
+        job_doc = user_job_desc_collection.find_one(
+            {"user_id": user_id, "jobs.job_id": app['jobId']},
+            {"jobs.$": 1}
+        )
+        job_text = None
+        if job_doc and 'jobs' in job_doc and len(job_doc['jobs']) > 0:
+            job_text = job_doc['jobs'][0].get('text')
+
+        applications.append({
+            "applicationId": app["applicationId"],
+            "resumeId": app["resumeId"],
+            "jobId": app["jobId"],
+            "appliedAt": app["appliedAt"],
+            "jobText": job_text
+        })
+
+    return jsonify({"applications": applications}), 200
 
 #TODO:
 @app.route('/api/templates', methods=['GET']) #STRETCH
