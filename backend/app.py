@@ -1431,7 +1431,6 @@ def job_advice():
         "advice": advice,
     }), 200
 
-#TODO:
 @app.route('/api/user/job-applications', methods=['POST']) #STRETCH
 def post_job_apps():
     user_id = request.headers.get('Email', None)
@@ -1542,6 +1541,11 @@ def get_all_resumes_gen():
 def get_all_resumes_format():
     resumes_format = user_resume_format_collection.find()
     return dumps(resumes_format), 200
+
+@app.route('/api/testdb/applications', methods=['GET']) #FOR TESTING/DEBUGGING PURPOSES ONLY, SHOULD NOT BE ACCESSIBLE THRU FRONT END
+def get_all_applications():
+    applications = user_application_collection.find()
+    return dumps(applications), 200
 
 if __name__ == '__main__':
     app.run(debug=True)
