@@ -124,6 +124,15 @@ export default function Navbar() {
               >
                 Resume Docs
               </button>
+              <button
+                onClick={() => {
+                  router.push("/settings");
+                  setDropdownOpen(false);
+                }}
+                className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
+              >
+                Settings
+              </button>
             </div>
           )}
           </div>
