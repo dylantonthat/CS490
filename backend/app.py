@@ -1343,16 +1343,16 @@ def resume_format():
     # Reading file and writing to temp temp input path
     file_id = fs.put(resume_content, filename=f"resume.{format_type}")
 
-    resume_id = str(uuid.uuid4())
+    formatted_resume_id = str(uuid.uuid4())
     user_resume_format_collection.insert_one({
-        'formatted_resume_id': resume_id,
+        'formatted_resume_id': formatted_resume_id,
         'user_id': user_id,
         'file_id': file_id,
         'filename': f"resume.{format_type}",
         'content_type': format_type,
     })
     return jsonify({
-        "test": resume_id,
+        "formattedResumeId ": formatted_resume_id,
     }), 200
 
 @app.route('/api/resumes/download/<formattedResumeId>', methods=['GET']) #CORE
