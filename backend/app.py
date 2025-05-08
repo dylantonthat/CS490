@@ -565,8 +565,9 @@ Education"""
  - {', '.join(skills)}    
 """
     print(format_string)
+    resume_format = bytes(format_string, encoding='utf-8')
 
-    return format_string
+    return resume_format
 
 def markdown_format(resume_json, file_type): # .md .html .pdf .docx
     # extracting data
