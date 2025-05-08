@@ -1,11 +1,16 @@
+import AdvicePanel from "@/components/AdvicePanel";
+import ApplicationHistory from "@/components/ApplicationHistory";
 import CareerForm from "@/components/CareerForm";
 import ContactForm from "@/components/ContactForm";
+import FormatResumePanel from "@/components/FormatResumePanel";
 import JobDescriptionHistory from "@/components/JobDescriptionHistory";
 import JobDescriptionInput from "@/components/JobDescriptionInput";
 import ResumeRawView from "@/components/ResumeRawView";
 import ResumeTrigger from "@/components/ResumeTrigger";
 import ResumeUpload from "@/components/ResumeUpload";
 import SkillsForm from "@/components/SkillsForm";
+import TemplateSelector from "@/components/TemplateSelector";
+
 import { withPageAuthRequired } from "@auth0/nextjs-auth0";
 import { createContext, ReactNode, useContext, useState } from "react";
 
@@ -35,6 +40,7 @@ function ResumeProvider({ children }: { children: ReactNode }) {
 
 function HomePage() {
   const [reloadJobs, setReloadJobs] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
 
   return (
     <ResumeProvider>
@@ -60,7 +66,7 @@ function HomePage() {
           <ContactForm />
         </div>
 
-        {/* Job Description Features (3-column layout) moved below */}
+        {/* Job Description Features (3-column layout) */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
           <JobDescriptionInput onJobSubmitted={() => setReloadJobs(true)} />
           <JobDescriptionHistory
@@ -76,6 +82,14 @@ function HomePage() {
             <h2 className="text-2xl font-semibold mb-4">View Generated Resume Text</h2>
             <ResumeRawView />
           </div>
+        </div>
+
+        {/*Formatted Resume and Application History */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-7xl mx-auto">
+          <TemplateSelector onSelect={setSelectedTemplateId} />
+          <FormatResumePanel templateId={selectedTemplateId} />
+          <AdvicePanel />
+          <ApplicationHistory />
         </div>
       </div>
     </ResumeProvider>

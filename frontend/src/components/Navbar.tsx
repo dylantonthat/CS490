@@ -117,7 +117,7 @@ export default function Navbar() {
               </button>
               <button
                 onClick={() => {
-                  router.push("/resdocs"); // 👈 New resume documents page
+                  router.push("/resdocs");
                   setDropdownOpen(false);
                 }}
                 className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
