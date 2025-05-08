@@ -574,7 +574,7 @@ def markdown_format(resume_json, file_type): # .md .html .pdf .docx
     career = resume_json['career']
     skills = resume_json['skills']
     
-    # string that goes in the txt file
+    # Markdown string 
     format_string = f"""# {contact['name']} Resume
 ## Contact
  - **Email**: {contact['email']}
@@ -615,7 +615,10 @@ def markdown_format(resume_json, file_type): # .md .html .pdf .docx
     elif file_type == 'pdf':
         resume_format = HTML(string=format_html).write_pdf()
     elif file_type == 'docx':
-        resume_format = pypandoc.convert_text(format_string, 'docx', format='md')
+        with tempfile.NamedTemporaryFile(suffix=file_type) as tmp:
+            pypandoc.convert_text(format_string, 'docx', format='md', outputfile=tmp.name)
+            resume_format = tmp.read()
+        tmp.close()
     else:
         resume_format = bytes(format_string, encoding='utf-8')
 
@@ -1335,10 +1338,8 @@ def resume_format():
     else:
         template_format(resume, template_id, style_id, format_type)
 
-    with tempfile.TemporaryDirectory() as temp_dir:
-        input_path = os.path.join(temp_dir, f'resume.{format_type}')
-        # Reading file and writing to temp temp input path
-        file_id = fs.put(resume_content, filename=f"resume.{format_type}")
+    # Reading file and writing to temp temp input path
+    file_id = fs.put(resume_content, filename=f"resume.{format_type}")
 
     resume_id = str(uuid.uuid4())
     user_resume_format_collection.insert_one({
@@ -1379,7 +1380,6 @@ def download_resume(formattedResumeId):
         }
     )
 
-#TODO:
 @app.route('/api/jobs/advice', methods=['POST']) #CORE
 def job_advice():
     user_id = request.headers.get('Email', None)
