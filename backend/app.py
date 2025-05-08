@@ -40,6 +40,7 @@ user_resume_gen_collection = db['resumes_gen']
 user_resume_format_collection = db['resumes_format']
 user_freeform_collection = db['freeform']
 user_job_desc_collection = db['job_desc']
+user_application_collection = db['applications']
 
 app = Flask(__name__)
 CORS(app, origins=["http://localhost:3000"])
@@ -1401,6 +1402,8 @@ def job_advice():
         return jsonify({"error": "Resume not found"}), 404
     if resume.get('user_id') != user_id:
         return jsonify({"error": "Forbidden: Resume does not belong to user"}), 403
+    
+    #filter resume
     filtered_resume = {
         "career": resume.get("career", []),
         "contact": resume.get("contact", {}),
@@ -1418,6 +1421,8 @@ def job_advice():
     job_entry = next((job for job in job_desc['jobs'] if job['job_id'] == jobId), None)
     if not job_entry:
         return jsonify({"error": "Job description not found"}), 404
+    
+    #filter job desc
     job_text = job_entry.get("text", "")
     print("JOB DESC GOTTEN: ", job_text, "\n\n") #debugging
 
@@ -1427,6 +1432,64 @@ def job_advice():
         "advice": advice,
     }), 200
 
+@app.route('/api/user/job-applications', methods=['POST']) #STRETCH
+def post_job_apps():
+    user_id = request.headers.get('Email', None)
+    if not user_id:
+        return jsonify({"error": "Missing user ID"}), 401
+    
+    #verify no missing fields
+    jobId = request.json.get('jobId')
+    if not jobId:
+        return jsonify({"error": "Missing jobId field"}), 400
+    resumeId = request.json.get('resumeId')
+    if not resumeId:
+        return jsonify({"error": "Missing resumeId field"}), 400
+    print("good request\n\n") #debugging
+
+    #verify resume
+    resume = user_resume_gen_collection.find_one({"resume_id": resumeId})
+    if not resume:
+        return jsonify({"error": "Resume not found"}), 404
+    if resume.get('user_id') != user_id:
+        return jsonify({"error": "Forbidden: Resume does not belong to user"}), 403
+    
+
+    #verify job desc
+    job_desc = user_job_desc_collection.find_one({"jobs.job_id": jobId})
+    if not job_desc:
+        return jsonify({"error": "Job description not found"}), 404
+    if job_desc.get('user_id') != user_id:
+        return jsonify({"error": "Forbidden: Job does not belong to user"}), 403
+    job_entry = next((job for job in job_desc['jobs'] if job['job_id'] == jobId), None)
+    if not job_entry:
+        return jsonify({"error": "Job description not found"}), 404
+
+    existing = user_application_collection.find_one({
+        "resumeId": resumeId,
+        "jobId": jobId
+    })
+    if existing:
+        return jsonify({"error": "Duplicate application: jobId and resumeId already used"}), 409
+
+    application_id = str(uuid.uuid4())
+    applied_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+    user_application_collection.insert_one({
+        "applicationId": application_id,
+        "userId": user_id,
+        "resumeId": resumeId,
+        "jobId": jobId,
+        "appliedAt": applied_at
+    })
+
+    return jsonify({
+        "applicationId": application_id,
+        "status": "saved",
+        "appliedAt": applied_at
+    }), 200
+
+
 #TODO:
 @app.route('/api/user/job-applications', methods=['GET']) #STRETCH
 def get_job_apps():
@@ -1434,20 +1497,30 @@ def get_job_apps():
     if not user_id:
         return jsonify({"error": "Missing user ID"}), 401
     
-    return jsonify({
-        "test": "test"
-    }), 200
+    applications_cursor = user_application_collection.find(
+        {"userId": user_id},
+        {"_id": 0, "applicationId": 1, "resumeId": 1, "jobId": 1, "appliedAt": 1}
+    ).sort("appliedAt", -1)
 
-#TODO:
-@app.route('/api/user/job-applications', methods=['POST']) #STRETCH
-def post_job_apps():
-    user_id = request.headers.get('Email', None)
-    if not user_id:
-        return jsonify({"error": "Missing user ID"}), 401
-    
-    return jsonify({
-        "test": "test"
-    }), 200
+    applications = []
+    for app in applications_cursor:
+        job_doc = user_job_desc_collection.find_one(
+            {"user_id": user_id, "jobs.job_id": app['jobId']},
+            {"jobs.$": 1}
+        )
+        job_text = None
+        if job_doc and 'jobs' in job_doc and len(job_doc['jobs']) > 0:
+            job_text = job_doc['jobs'][0].get('text')
+
+        applications.append({
+            "applicationId": app["applicationId"],
+            "resumeId": app["resumeId"],
+            "jobId": app["jobId"],
+            "appliedAt": app["appliedAt"],
+            "jobText": job_text
+        })
+
+    return jsonify({"applications": applications}), 200
 
 #TODO:
 @app.route('/api/templates', methods=['GET']) #STRETCH
@@ -1490,6 +1563,11 @@ def get_all_resumes_gen():
 def get_all_resumes_format():
     resumes_format = user_resume_format_collection.find()
     return dumps(resumes_format), 200
+
+@app.route('/api/testdb/applications', methods=['GET']) #FOR TESTING/DEBUGGING PURPOSES ONLY, SHOULD NOT BE ACCESSIBLE THRU FRONT END
+def get_all_applications():
+    applications = user_application_collection.find()
+    return dumps(applications), 200
 
 if __name__ == '__main__':
     app.run(debug=True)
