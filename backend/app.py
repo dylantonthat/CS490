@@ -28,8 +28,13 @@ ALLOWED_EXTENSIONS = {'docx', 'pdf'}
 #Formatting types
 # ALLOWED_FORMATS = {'plain', 'markdown', 'html', 'pdf', 'docx'}
 ALLOWED_FORMATS = {'txt', 'md', 'html', 'pdf', 'docx', None}
-ALLOWED_TEMPLATES = {'modern', 'simple', None} #temp names
-ALLOWED_STYLES = {'compact', 'expanded', 'colors', None} #temp names
+ALLOWED_TEMPLATES = {'one_col', 
+                     'one_col_blue', 
+                     'one_col_sans', 
+                     'two_col', 
+                     'two_col_blue', 
+                     'two_col_sans', 
+                     None}
 
 clientDB = MongoClient("mongodb+srv://kdv:fp4ZIfpKYM3zghYX@kdv-cluster.wn6dsp1.mongodb.net/?retryWrites=true&w=majority&appName=kdv-cluster")
 db = clientDB['cs490_project']
@@ -188,12 +193,22 @@ Return a JSON object with this structure:
       "accomplishments": ["", ""]
     }}
   ],
+  "projects":[
+    {{
+        "title": "",
+        "description": ["", ""]
+    }}
+  ],
   "skills": ["", ""]
 }}
 
 Only include fields you can extract.
 Do not guess missing values, leave them blank.
 Use the exact parameter names.
+
+Any category name related to projects, extracurriculars, or activities goes under projects
+
+Any category name related to careers, experience, work experience, etc, goes under the "career" entry. 
 
 It is important to distinguish responsibility and accomplishments for each career.
 The responsibility should be their main job description for that task, there should only be one.
@@ -427,18 +442,26 @@ Return a JSON object with this structure:
       "accomplishments": ["", ""]
     }}
   ],
+  "projects":[
+    {{
+        "title": "",
+        "description": ["", ""]
+    }}
+  ],
   "skills": ["", ""]
 }}
 
 Instructions:
 - Do not modify the contact or education fields.
 - Keep the original job titles, companies, and dates in each career entry.
-- You may remove irrelevant career entries if the user has more than 3 total.
+- You may remove irrelevant career/project entries if the user has more than 3 total.
+- Remove irrelevant skills but leave at least half of the original 
 - Do not guess missing values. If a field is missing, leave it blank.
 
 For each career entry:
 - Edit "responsibilities" to match the job description.
 - Add "accomplishments" that show measurable success or impact.
+- Adjust the "description" for projects to emphasize skills relevant to the job description. 
 - Use freeform experience where relevant.
 
 INPUTTED VALUES:
@@ -529,6 +552,7 @@ def plain_format(resume_json): # .txt
     contact = resume_json['contact']
     education = resume_json['education']
     career = resume_json['career']
+    projects = resume_json['projects']
     skills = resume_json['skills']
     
     # string that goes in the txt file
@@ -560,6 +584,14 @@ Education"""
             entry = entry + f"\n\t\t - {accomp}"
         format_string = format_string + entry
 
+    format_string = format_string + '\n\nProjects'
+    for proj_entry in projects:
+        entry = f"""
+- {proj_entry['title']}"""
+        for desc in proj_entry['description']:
+            entry = entry + f"\n\t - {desc}"
+        format_string = format_string + entry
+
     format_string = format_string + f"""
 \nSkills
  - {', '.join(skills)}    
@@ -567,13 +599,16 @@ Education"""
     print(format_string)
     resume_format = bytes(format_string, encoding='utf-8')
 
-    return resume_format
+    file_id = fs.put(resume_format, filename=f"resume.txt")
+
+    return file_id
 
 def markdown_format(resume_json, file_type): # .md .html .pdf .docx
     # extracting data
     contact = resume_json['contact']
     education = resume_json['education']
     career = resume_json['career']
+    projects = resume_json['projects']
     skills = resume_json['skills']
     
     # Markdown string 
@@ -605,6 +640,14 @@ def markdown_format(resume_json, file_type): # .md .html .pdf .docx
             entry = entry + f"\n\t\t - {accomp}"
         format_string = format_string + entry
 
+    format_string = format_string + '\n\n## Projects'
+    for proj_entry in projects:
+        entry = f"""
+- {proj_entry['title']}"""
+        for desc in proj_entry['description']:
+            entry = entry + f"\n\t - {desc}"
+        format_string = format_string + entry
+
     format_string = format_string + f"""
 \n## Skills
  - {', '.join(skills)}    
@@ -624,11 +667,106 @@ def markdown_format(resume_json, file_type): # .md .html .pdf .docx
     else:
         resume_format = bytes(format_string, encoding='utf-8')
 
-    return resume_format
+    file_id = fs.put(resume_format, filename=f"resume.{file_type}")
 
-def template_format(resume_json, template_id, style_id, file_type): # .html .pdf .docx (if template selected)
-    return
+    return file_id
 
+def template_format(resume_json, template_id, file_type): # .html .pdf .docx .tex(if template selected)
+    with open(f'templates/{template_id}.tex', 'r', encoding='utf-8') as file:
+        template = file.read()
+
+    prompt = f"""
+You are an AI that formats resumes into LaTeX using a given template and a structured JSON resume.
+
+You will receive:
+- A structured resume in JSON format.
+- A LaTeX template (.tex format).
+
+Your Task:
+Apply the resume data to the template by replacing all placeholder content. You must:
+
+1. Replace only quoted placeholders in the template. These will appear as values in quotation marks (e.g., "Job Title"). You must replace the entire quoted string with actual content, omitting the quotation marks. For example, "Job Title" should become Software Engineer. Do not leave quotation marks in the final output. Also, do not modify any formatting or structure outside of these replacements.
+2. Rearrange the skills section only:
+   - Reflect the categories listed in the JSON.
+   - Include at least 3 skill categories (e.g., Languages, Tools, Frameworks).
+   - Do not leave only 1 or 2 categories — merge or rename categories if necessary to meet the minimum.
+3. Generate a short summary if the template includes a summary section.
+4. Escape all special LaTeX characters in the resume content (such as %, &, _, #, $, brackets, ^, ~, and \\) using a backslash (\\).
+   This is mandatory. Any such character must be escaped, even if the original JSON does not include the backslash.
+   Example: "100% complete" → "100\\% complete"
+5. Maintain the latex format and return just the resume as if it were meant to go straight into a .tex file. Do not leave any extra comments, just go straight to the latex file.
+
+Do NOT:
+- Do not add or remove LaTeX environments.
+- Do not reformat the LaTeX beyond placeholder replacement and the skills section.
+- Do not skip escaping LaTeX special characters.
+- Do not reduce the skills categories below 3 under any condition.
+
+Output:
+Return a single .tex file with:
+- All placeholders replaced.
+- A valid, compile-ready LaTeX resume.
+- Escaped special characters.
+- At least 3 skill categories.
+Resume (structured JSON):
+{json.dumps(resume_json, indent=2)}
+
+Template (latex format):
+{template}
+""".strip()
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo", # model="gpt-4o", (switched out for cheaper testing)
+            messages=[
+                {"role": "system", "content": "You are a helpful and experienced career advisor who gives specific and personalized guidance based on a user's resume and a job posting."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7 #higher to make advice more natural-sounding and stuff
+        )
+
+        content = response.choices[0].message.content.strip()
+
+        if content.startswith("```"):
+            content = re.sub(r"^```[a-zA-Z]*\n?", "", content)
+            content = content.rstrip("```").strip()
+
+
+        print(content)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tex_path = os.path.join(tmpdir, "resume.tex")
+            
+            # Write LaTeX to .tex file
+            with open(tex_path, "w") as f:
+                f.write(content)
+
+            output_path = os.path.join(tmpdir, f"resume.{file_type}")
+
+            try:
+                if file_type == "pdf":
+                    # Compile LaTeX to PDF
+                    subprocess.run(["pdflatex", "-output-directory", tmpdir, tex_path], check=True)
+                    output_path = os.path.join(tmpdir, "resume.pdf")
+                elif file_type in ("html", "docx"):
+                    # Use pandoc to convert to HTML or DOCX
+                    subprocess.run(["pandoc", tex_path, "-o", output_path], check=True)
+                elif file_type == "tex":
+                    # If tex, just keep the original
+                    output_path = tex_path
+                else:
+                    raise ValueError("Unsupported format")
+                # Read the converted file and store in GridFS
+                with open(output_path, "rb") as f:
+                    file_id = fs.put(f, filename=f"resume.{file_type}")
+                    return file_id
+
+            except subprocess.CalledProcessError as e:
+                print("Conversion failed:", e)
+                return None
+
+    except Exception as e:
+        print("OpenAI API error:", e)
+        return None
 
 # ***** SPRINT 2 APIS BELOW ********************************************************
 @app.route('/')
@@ -1310,7 +1448,6 @@ def update_freeform(history_id):
 
 
 # ***** SPRINT 4 APIS BELOW ********************************************************
-#TODO:
 @app.route('/api/resumes/format', methods=['POST']) #CORE
 def resume_format():
     #STRETCH: PDF and LaTeX output support
@@ -1327,21 +1464,21 @@ def resume_format():
     template_id = data.get('templateId')
     style_id = data.get('styleId')
     
-    if (format_type not in ALLOWED_FORMATS) or (template_id not in ALLOWED_TEMPLATES) or (style_id not in ALLOWED_STYLES):
+    if (format_type not in ALLOWED_FORMATS) or (template_id not in ALLOWED_TEMPLATES):
         return jsonify({"error": "invalid request parameters"}), 400
 
-    resume = user_resume_gen_collection.find_one({'user_id':user_id},{'_id':0, 'user_id':0, 'resume_id':0, 'job_id':0, 'status':0})
+    resume = user_resume_gen_collection.find_one({'user_id':user_id, 'resume_id':resume_id},{'_id':0, 'user_id':0, 'resume_id':0, 'job_id':0, 'status':0})
+    print(f"****Generated resume\n{resume}")
 
-
-    if format_type == 'txt':
-        resume_content = plain_format(resume)
-    elif format_type in ['md', 'html', 'pdf', 'docx', None]:
-        resume_content = markdown_format(resume, format_type)
+    print(f'****{template_id}')
+    if format_type == 'txt' and not template_id:
+        file_id = plain_format(resume)
+    elif format_type in ['md', 'html', 'pdf', 'docx', None] and not template_id:
+        file_id = markdown_format(resume, format_type)
+    elif format_type in ['tex', 'html', 'pdf', 'docx'] and template_id:
+        file_id = template_format(resume, template_id, format_type)
     else:
-        template_format(resume, template_id, style_id, format_type)
-
-    # Reading file and writing to temp temp input path
-    file_id = fs.put(resume_content, filename=f"resume.{format_type}")
+        return jsonify({"error": "invalid combination of request parameters"}), 400
 
     formatted_resume_id = str(uuid.uuid4())
     user_resume_format_collection.insert_one({
@@ -1490,8 +1627,6 @@ def post_job_apps():
         "appliedAt": applied_at
     }), 200
 
-
-#TODO:
 @app.route('/api/user/job-applications', methods=['GET']) #STRETCH
 def get_job_apps():
     user_id = request.headers.get('Email', None)
@@ -1531,7 +1666,44 @@ def templates():
         return jsonify({"error": "Missing user ID"}), 401
     
     return jsonify({
-        "test": "test"
+        "templates": [
+            {
+                "templateId": "one_col",
+                "name": "One Column",
+                "description": "Clean and traditional one column resume.",
+                "previewUrl": "/templates/one_col.jpg"
+            },
+            {
+                "templateId": "one_col_blue",
+                "name": "One Column - Blue",
+                "description": "One column resume with blue highlights.",
+                "previewUrl": "/templates/one_col_blue.jpg"
+            },
+            {
+                "templateId": "one_col_sans",
+                "name": "One Column - Sans Serif",
+                "description": "One column resune with a more modern Sans Serif font.",
+                "previewUrl": "/templates/one_col_sans.jpg"
+            },
+            {
+                "templateId": "two_col",
+                "name": "Two Column",
+                "description": "Simple two column resume for a dynamic look",
+                "previewUrl": "/templates/two_col.jpg"
+            },
+            {
+                "templateId": "two_col_blue",
+                "name": "Two Column - Blue",
+                "description": "Two column resume with blue highlights.",
+                "previewUrl": "/templates/two_col_blue.jpg"
+            },
+            {
+                "templateId": "two_col_sans",
+                "name": "Two Column - Sans Serif",
+                "description": "Two column resune with a more modern Sans Serif font.",
+                "previewUrl": "/templates/two_col_sans.jpg"
+            },
+        ]
     }), 200
 
 # ***** DEBUGGING APIS ********************************************************
