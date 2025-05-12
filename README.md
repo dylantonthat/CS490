@@ -43,6 +43,7 @@
    sudo apt install -y libreoffice # Needed for docx files
    sudo apt install pandoc # Needed for converting formatted resumes to docx
    sudo apt install texlive-full
+   sudo apt install texlive-fonts-extra
    pip install -r requirements.txt
    ```
 4. Start the Flask server:
