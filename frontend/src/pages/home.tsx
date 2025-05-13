@@ -41,6 +41,7 @@ function ResumeProvider({ children }: { children: ReactNode }) {
 
 function HomePage() {
   const [reloadJobs, setReloadJobs] = useState(false);
+  const [reloadApplications, setReloadApplications] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
 
   return (
@@ -89,9 +90,12 @@ function HomePage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-7xl mx-auto">
           <TemplateSelector onSelect={setSelectedTemplateId} />
           <FormatResumePanel templateId={selectedTemplateId} />
+          <ApplicationPanel onApplicationSubmitted={() => setReloadApplications(true)} />
+          <ApplicationHistory
+            reload={reloadApplications}
+            onReloadComplete={() => setReloadApplications(false)}
+          />
           <AdvicePanel />
-          <ApplicationPanel/>
-          <ApplicationHistory />
         </div>
       </div>
     </ResumeProvider>

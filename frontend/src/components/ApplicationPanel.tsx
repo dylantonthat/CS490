@@ -2,7 +2,11 @@ import { useUser } from "@auth0/nextjs-auth0/client";
 import axios from "axios";
 import { useEffect, useState } from "react";
 
-export default function ApplicationPanel() {
+export default function ApplicationPanel({
+  onApplicationSubmitted,
+}: {
+  onApplicationSubmitted: () => void;
+}) {
   const [resumeId, setResumeId] = useState("");
   const [resumeOptions, setResumeOptions] = useState<any[]>([]);
   const [jobId, setJobId] = useState("");
@@ -45,7 +49,6 @@ export default function ApplicationPanel() {
     setLoading(true);
     setApplication("");
 
-
     try {
       const res = await axios.post(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/job-applications`,
@@ -53,6 +56,7 @@ export default function ApplicationPanel() {
         { headers: { Email: user?.email! } }
       );
       setApplication("Application recorded successfully");
+      onApplicationSubmitted();
     } catch (error) {
       if (axios.isAxiosError(error)) {
         if (error.response?.status === 409) {
