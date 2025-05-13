@@ -8,7 +8,8 @@ export default function TemplateSelector() {
   const [fileType, setFileType] = useState("md");
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
   const [selectedResume, setSelectedResume] = useState<string>("");
-  const { user } = useUser();
+  const [status, setStatus] = useState<string>("");
+  const { user, error, isLoading } = useUser()
 
   useEffect(() => {
     const fetchTemplates = async () => {
@@ -49,6 +50,7 @@ export default function TemplateSelector() {
     if (!selectedTemplate) setSelectedTemplate("")
 
       try {
+      setStatus("Formatting...");
       const res = await axios.post(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/format`,
         {
@@ -62,7 +64,8 @@ export default function TemplateSelector() {
           },
         }
       );
-      alert("Resume formatting complete! Now Downloading...");
+      setStatus("Formatting successful. Now Downloading.");
+      // alert("Resume formatting complete! Now Downloading...");
       console.log("Formatted Resume ID:", res.data.formattedResumeId);
       const res2 = await axios.get(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/download/${res.data.formattedResumeId}`,
@@ -86,10 +89,12 @@ export default function TemplateSelector() {
       // clean up "a" element & remove ObjectURL
       document.body.removeChild(link);
       URL.revokeObjectURL(href);
-      alert("Downloaded!");
+      // alert("Downloaded!");
+      setStatus("Downloaded!");
     } catch (err) {
-      console.error("Formatting failed", err);
-      alert("Error formatting resume");
+      setStatus("Formatting failed. Please try again.");
+      // console.error("Formatting failed", err);
+      // alert("Error formatting resume");
     }
   };
 
@@ -145,6 +150,19 @@ export default function TemplateSelector() {
       >
         Generate Formatted Resume
       </button>
+                {status && (
+            <p
+              className={`text-sm ${
+                status.includes("successful")
+                  ? "text-green-600 dark:text-green-400"
+                  : status.includes("failed")
+                  ? "text-red-600 dark:text-red-400"
+                  : "text-gray-600 dark:text-gray-300"
+              }`}
+            >
+              {status}
+            </p>
+          )}
        {(
     !selectedResume ||
     !fileType ||
