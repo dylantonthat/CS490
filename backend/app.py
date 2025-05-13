@@ -704,6 +704,7 @@ Apply the resume data to the template by replacing all placeholder content. You 
 4. Escape all special LaTeX characters in the resume content (such as %, &, _, #, $, brackets, ^, ~, and \\) using a backslash (\\).
    This is mandatory. Any such character must be escaped, even if the original JSON does not include the backslash.
    Example: "100% complete" → "100\\% complete"
+   Example: "#C complete" → "\\#C complete"
 5. Maintain the latex format and return just the resume as if it were meant to go straight into a .tex file. Do not leave any extra comments, just go straight to the latex file.
 
 Do NOT:
@@ -711,6 +712,9 @@ Do NOT:
 - Do not reformat the LaTeX beyond placeholder replacement and the skills section.
 - Do not skip escaping LaTeX special characters.
 - Do not reduce the skills categories below 3 under any condition.
+- Do not forget to backslash before special characters
+   Example: "#C complete" → "\\#C complete"
+
 
 THE ONLY EXCEPTION TO LATEX ENVIRONMENTS:
 If the JSON resume contains no projects (i.e., the "projects" field is missing or an empty list), remove all LaTeX lines or sections that relate to projects. 

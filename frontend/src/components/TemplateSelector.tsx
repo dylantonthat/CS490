@@ -45,7 +45,7 @@ export default function TemplateSelector() {
   const handleSubmit = async () => {
     // if (!selectedTemplate || !selectedResume || !fileType) return;
     if (!selectedResume || !fileType) return;
-    if (!selectedTemplate && ["md", "txt", "html"].includes(fileType)) return;
+    if (!!selectedTemplate && ["md", "txt", "html"].includes(fileType)) return;
     if (!selectedTemplate) setSelectedTemplate("")
 
       try {
@@ -139,11 +139,21 @@ export default function TemplateSelector() {
       <button
         onClick={handleSubmit}
         // disabled={!selectedResume || !selectedTemplate || !fileType}
+        // disabled={!selectedResume || !fileType}
         disabled={!selectedResume || !fileType || (!!selectedTemplate && ["md", "txt", "html"].includes(fileType))}
         className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
       >
         Generate Formatted Resume
       </button>
+       {(
+    !selectedResume ||
+    !fileType ||
+    (!!selectedTemplate && ["md", "txt", "html"].includes(fileType))
+  ) && (
+    <p className="mt-2 text-sm text-red-600">
+      Please select a resume and file type. Template must be empty for plaintext formats (md, txt, html).
+    </p>
+  )}
     </div>
   );
 }
