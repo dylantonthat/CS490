@@ -5,6 +5,7 @@ import { useUser } from "@auth0/nextjs-auth0/client";
 export default function TemplateSelector() {
   const [templates, setTemplates] = useState<any[]>([]);
   const [resumes, setResumes] = useState<any[]>([]);
+  const [fileType, setFileType] = useState("md");
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
   const [selectedResume, setSelectedResume] = useState<string>("");
   const { user } = useUser();
@@ -42,13 +43,15 @@ export default function TemplateSelector() {
   }, [user]);
 
   const handleSubmit = async () => {
-    if (!selectedTemplate || !selectedResume) return;
+    // if (!selectedTemplate || !selectedResume || !fileType) return;
+    if (!selectedResume || !fileType) return;
+    if (!selectedTemplate) setSelectedTemplate("")
     try {
       const res = await axios.post(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/format`,
         {
           resumeId: selectedResume,
-          formatType: "pdf",
+          formatType: fileType,
           templateId: selectedTemplate,
         },
         {
@@ -57,8 +60,31 @@ export default function TemplateSelector() {
           },
         }
       );
-      alert("Resume formatting complete!");
+      alert("Resume formatting complete! Now Downloading...");
       console.log("Formatted Resume ID:", res.data.formattedResumeId);
+      const res2 = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/download/${res.data.formattedResumeId}`,
+        {
+          headers: {
+            Email: user?.email || "",
+          },
+          responseType: 'blob', // tell axios to expect binary data
+        },
+      );
+      // create file link in browser's memory
+      const href = URL.createObjectURL(res2.data);
+
+      // create "a" HTML element with href to file & click
+      const link = document.createElement('a');
+      link.href = href;
+      link.setAttribute('download', `resume.${fileType}`); //or any other extension
+      document.body.appendChild(link);
+      link.click();
+
+      // clean up "a" element & remove ObjectURL
+      document.body.removeChild(link);
+      URL.revokeObjectURL(href);
+      alert("Downloaded!");
     } catch (err) {
       console.error("Formatting failed", err);
       alert("Error formatting resume");
@@ -95,9 +121,23 @@ export default function TemplateSelector() {
         ))}
       </select>
 
+      <select
+        value={fileType}
+        onChange={(e) => setFileType(e.target.value)}
+        className="w-full p-2 border rounded text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+      >
+        <option value="md">Markdown (.md)</option>
+        <option value="txt">Text (.txt)</option>
+        <option value="html">HTML (.html)</option>
+        <option value="pdf">PDF (.pdf)</option>
+        <option value="docx">DOCX (.docx)</option>
+        {/* {templateId && <option value="latex">LaTeX (.tex)</option>} */}
+      </select>
+
       <button
         onClick={handleSubmit}
-        disabled={!selectedResume || !selectedTemplate}
+        // disabled={!selectedResume || !selectedTemplate || !fileType}
+        disabled={!selectedResume || !fileType}
         className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
       >
         Generate Formatted Resume

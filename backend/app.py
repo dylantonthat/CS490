@@ -34,7 +34,7 @@ ALLOWED_TEMPLATES = {'one_col',
                      'two_col', 
                      'two_col_blue', 
                      'two_col_sans', 
-                     None}
+                     ''}
 
 clientDB = MongoClient("mongodb+srv://kdv:fp4ZIfpKYM3zghYX@kdv-cluster.wn6dsp1.mongodb.net/?retryWrites=true&w=majority&appName=kdv-cluster")
 db = clientDB['cs490_project']
