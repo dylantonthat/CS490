@@ -11,8 +11,13 @@ import ResumeTrigger from "@/components/ResumeTrigger";
 import ResumeUpload from "@/components/ResumeUpload";
 import SkillsForm from "@/components/SkillsForm";
 import TemplateSelector from "@/components/TemplateSelector";
+import { useRouter } from "next/router";
 
 import { withPageAuthRequired } from "@auth0/nextjs-auth0";
+
+import { useUser } from "@auth0/nextjs-auth0/client";
+
+
 import { createContext, ReactNode, useContext, useState } from "react";
 
 // Embedded ResumeContext
@@ -43,6 +48,10 @@ function HomePage() {
   const [reloadJobs, setReloadJobs] = useState(false);
   const [reloadApplications, setReloadApplications] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
+  const router = useRouter();
+
+  const { user } = useUser();
+  const isVerified = user?.email_verified;
 
   return (
     <ResumeProvider>
@@ -56,6 +65,49 @@ function HomePage() {
           </p>
         </div>
 
+
+      {/* Modal that blocks everything if email not verified */}
+      {isVerified === false && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0,
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: 'rgba(0, 0, 0, 0.75)',
+          zIndex: 9999,
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}>
+          <div style={{
+            backgroundColor: '#000',
+            padding: '2rem',
+            borderRadius: '10px',
+            textAlign: 'center',
+            maxWidth: '400px',
+            color: 'red'
+          }}>
+            <h2>Email Not Verified</h2>
+            <p>Please check your email and verify your account to access this app.</p>
+            <button
+              onClick={() => router.push("/api/auth/logout?returnTo=" + window.location.origin)}
+              style={{
+                marginTop: '1rem',
+                padding: '0.5rem 1rem',
+                fontSize: '1rem',
+                backgroundColor: '#f44336',
+                color: 'white',
+                border: 'none',
+                borderRadius: '5px',
+                cursor: 'pointer'
+              }}
+            >
+              Log Out
+            </button>
+          </div>
+        </div>
+      )}
+
         {/* Resume Upload and Career Form */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-7xl mx-auto">
           <ResumeUpload />
@@ -67,6 +119,7 @@ function HomePage() {
           <SkillsForm />
           <ContactForm />
         </div>
+
 
         {/* Job Description Features (3-column layout) */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
