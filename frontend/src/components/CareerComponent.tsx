@@ -11,6 +11,15 @@ interface Job {
   accomplishments?: string[];
 }
 
+const isValidMonthYearFormat = (date: string) => {
+  return /^(January|February|March|April|May|June|July|August|September|October|November|December) \d{4}$/.test(date);
+};
+
+const parseMonthYear = (monthYear: string): Date => {
+  const [monthName, year] = monthYear.split(" ");
+  return new Date(`${monthName} 01, ${year}`);
+};
+
 export default function CareerComponent() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [formData, setFormData] = useState<Partial<Job>>({
@@ -23,23 +32,39 @@ export default function CareerComponent() {
   });
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [startDateError, setStartDateError] = useState<string | null>(null);
+  const [endDateError, setEndDateError] = useState<string | null>(null);
   const { user } = useUser();
 
   useEffect(() => {
     if (!user) return;
-    axios
-      .get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/history`, {
-        headers: { Email: `${user.email}` }
-      })
-      .then((res) => setJobs(res.data.career || []))
-      .catch((err) => console.error('Error fetching career data:', err));
+    axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/history`, {
+      headers: { Email: `${user.email}` }
+    })
+    .then((res) => setJobs(res.data.career || []))
+    .catch((err) => console.error('Error fetching career data:', err));
   }, [user]);
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+
+    if (name === "startDate") {
+      if (!isValidMonthYearFormat(value)) {
+        setStartDateError("Invalid format. Use 'Month YYYY'");
+      } else {
+        setStartDateError(null);
+      }
+    }
+
+    if (name === "endDate") {
+      if (!isValidMonthYearFormat(value)) {
+        setEndDateError("Invalid format. Use 'Month YYYY'");
+      } else {
+        setEndDateError(null);
+      }
+    }
   };
 
   const handleAccomplishmentChange = (i: number, value: string) => {
@@ -60,6 +85,9 @@ export default function CareerComponent() {
   const handleEdit = (index: number) => {
     setFormData(jobs[index]);
     setEditingIndex(index);
+    setError(null);
+    setStartDateError(null);
+    setEndDateError(null);
   };
 
   const handleCancel = () => {
@@ -72,25 +100,49 @@ export default function CareerComponent() {
       accomplishments: ['']
     });
     setEditingIndex(null);
+    setError(null);
+    setStartDateError(null);
+    setEndDateError(null);
   };
 
   const handleSave = async () => {
-    try {
-      if (!user) return;
+    if (!user) return;
 
+    const { startDate, endDate } = formData;
+
+    if (!startDate || !endDate) {
+      setError("Start date and end date are required.");
+      return;
+    }
+
+    if (!isValidMonthYearFormat(startDate) || !isValidMonthYearFormat(endDate)) {
+      setError("Dates must be in 'Month YYYY' format.");
+      return;
+    }
+
+    const start = parseMonthYear(startDate);
+    const end = parseMonthYear(endDate);
+
+    if (start > end) {
+      setError("Start date must be before end date.");
+      return;
+    }
+
+    try {
+      setError(null);
       if (editingIndex !== null) {
         const updated = [...jobs];
         updated[editingIndex] = formData as Job;
-        await axios.put(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/history/${editingIndex}`, 
+        await axios.put(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/history/${editingIndex}`,
           formData,
-          {headers: { Email: `${user.email}` } }
+          { headers: { Email: `${user.email}` } }
         );
         setJobs(updated);
         setMessage('Job updated successfully.');
       } else {
         const res = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/history/upload`,
           formData,
-          {headers: { Email: `${user.email}` } }
+          { headers: { Email: `${user.email}` } }
         );
         setJobs((prev) => [...prev, res.data]);
         setMessage('Job added successfully.');
@@ -106,7 +158,6 @@ export default function CareerComponent() {
 
   const handleRemove = async (index: number) => {
     if (!user) return;
-
     try {
       await axios.delete(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/resumes/history`, {
         data: { index },
@@ -132,7 +183,6 @@ export default function CareerComponent() {
           {message}
         </div>
       )}
-
       <div className="space-y-6 mb-12">
         {jobs.map((job, index) => (
           <div
@@ -161,7 +211,7 @@ export default function CareerComponent() {
                   <input
                     type="text"
                     name="startDate"
-                    placeholder="Start Date"
+                    placeholder="Start Date (Month YYYY)"
                     value={formData.startDate || ''}
                     onChange={handleInputChange}
                     className="w-full p-2 text-sm border rounded-md text-gray-900 dark:text-white bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700"
@@ -169,7 +219,7 @@ export default function CareerComponent() {
                   <input
                     type="text"
                     name="endDate"
-                    placeholder="End Date"
+                    placeholder="End Date (Month YYYY)"
                     value={formData.endDate || ''}
                     onChange={handleInputChange}
                     className="w-full p-2 text-sm border rounded-md text-gray-900 dark:text-white bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700"
@@ -330,6 +380,9 @@ export default function CareerComponent() {
             </button>
           )}
         </div>
+
+        {error && <div className="mb-4 text-sm text-center text-red-600 dark:text-red-400">{error}</div>}
+
         <div className="flex gap-2 mt-2">
           <button
             onClick={handleSave}
