@@ -10,3 +10,4 @@ Markdown==3.8
 weasyprint
 pypandoc==1.15
 pandoc
+gunicorn
