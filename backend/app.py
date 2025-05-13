@@ -404,6 +404,7 @@ Here's the freeform skills text:
         print("OpenAI API error:", e)
         return None
 
+
 def ai_resume(job_text, hist_text, freeform_text, resume_id):
     prompt = f"""
 You are an intelligent resume generator that tailors resumes to match specific job descriptions.
@@ -418,6 +419,7 @@ Your task is to modify the "career" and "skills" sections of the resume to bette
 Return a JSON object with this structure:
 
 {{
+  "resume_title": "", 
   "contact": {{
     "name": "",
     "email": "",
@@ -457,6 +459,7 @@ Instructions:
 - You may remove irrelevant career/project entries if the user has more than 3 total.
 - Remove irrelevant skills but leave at least half of the original 
 - Do not guess missing values. If a field is missing, leave it blank.
+- Create a "resume_title" field that uses key phrases or roles from the job description and ends with the word "Resume". If you can get the company name from the job description specifically, add the company name to the title.
 
 For each career entry:
 - Edit "responsibilities" to match the job description.
@@ -476,7 +479,7 @@ INPUTTED VALUES:
 """
     try:
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo", # model="gpt-4o", (switched out for cheaper testing)
+            model="gpt-3.5-turbo",  # or "gpt-4o"
             messages=[
                 {"role": "system", "content": "You are a helpful assistant that tailors resumes for different job descriptions."},
                 {"role": "user", "content": prompt}
@@ -506,14 +509,14 @@ INPUTTED VALUES:
         print("OpenAI API error:", e)
         return None
 
+
 def ai_advice(resume, job_desc):
     prompt = f"""
-You are a career advisor AI. Analyze the resume and job description provided below. Then return clear, practical, and professional advice in plain text that helps the candidate improve their resume and increase their chances of landing the job.
+You are a career advisor AI. Analyze the resume and job description provided below. Then return clear, practical, and professional advice that helps the candidate improve their resume and increase their chances of landing the job.
 
-Your advice should include:
-• Suggestions for improvements or missing content in the resume.
-• Insights into how well the resume matches the job description.
-• Tips for tailoring the resume or preparing for interviews.
+The response format should be:
+1. A concise paragraph (3-4 sentences) summarizing the overall alignment and general advice.
+2. A bulleted list of specific Do's — actions the candidate should take to improve the resume or better prepare for the role. No more than 1-3 bullet points total.
 
 Resume (structured JSON):
 {json.dumps(resume, indent=2)}
@@ -521,17 +524,20 @@ Resume (structured JSON):
 Job Description (plain text):
 {job_desc}
 
-Write your response directly to the user in a friendly but professional tone. Do not include JSON, markdown, or headings — only the plain text advice.
+Write your response directly to the user in a friendly but professional tone. Use only plain text — no JSON, no markdown, no headings.
 """.strip()
 
     try:
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo", # model="gpt-4o", (switched out for cheaper testing)
+            model="gpt-3.5-turbo",  # or "gpt-4o"
             messages=[
-                {"role": "system", "content": "You are a helpful and experienced career advisor who gives specific and personalized guidance based on a user's resume and a job posting."},
+                {
+                    "role": "system",
+                    "content": "You are a helpful and experienced career advisor who gives specific and personalized guidance based on a user's resume and a job posting."
+                },
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.7 #higher to make advice more natural-sounding and stuff
+            temperature=0.7
         )
 
         content = response.choices[0].message.content.strip()
@@ -545,6 +551,7 @@ Write your response directly to the user in a friendly but professional tone. Do
     except Exception as e:
         print("OpenAI API error:", e)
         return None
+
 
 # functions for formatting resumes
 def plain_format(resume_json): # .txt
@@ -671,6 +678,8 @@ def markdown_format(resume_json, file_type): # .md .html .pdf .docx
 
     return file_id
 
+
+
 def template_format(resume_json, template_id, file_type): # .html .pdf .docx .tex(if template selected)
     with open(f'templates/{template_id}.tex', 'r', encoding='utf-8') as file:
         template = file.read()
@@ -767,6 +776,7 @@ Template (latex format):
     except Exception as e:
         print("OpenAI API error:", e)
         return None
+
 
 # ***** SPRINT 2 APIS BELOW ********************************************************
 @app.route('/')
@@ -1518,6 +1528,24 @@ def download_resume(formattedResumeId):
             "Content-Disposition": f"inline; filename={resume_meta.get('filename')}"
         }
     )
+
+@app.route('/api/resumes/generated', methods=['GET'])
+def get_resumes():
+    user_id = request.headers.get('Email')
+    if not user_id:
+        return jsonify({"error": "Missing user ID"}), 401
+
+    resumes = user_resume_gen_collection.find({"user_id": user_id})
+    return jsonify({
+        "resumes": [
+            {
+                "resume_id": r["resume_id"],
+                "resume_title": r.get("resume_title", "Untitled Resume")
+            }
+            for r in resumes
+        ]
+    })
+
 
 @app.route('/api/jobs/advice', methods=['POST']) #CORE
 def job_advice():
