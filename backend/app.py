@@ -778,6 +778,12 @@ Template (latex format):
         return None
 
 
+@app.before_request
+def allow_templates_without_auth():
+    if request.path == '/api/templates':
+        return None
+
+
 # ***** SPRINT 2 APIS BELOW ********************************************************
 @app.route('/')
 def hello():
@@ -1499,8 +1505,9 @@ def resume_format():
         'content_type': format_type,
     })
     return jsonify({
-        "formattedResumeId ": formatted_resume_id,
+        "formattedResumeId": formatted_resume_id,
     }), 200
+
 
 @app.route('/api/resumes/download/<formattedResumeId>', methods=['GET']) #CORE
 def download_resume(formattedResumeId):
@@ -1686,13 +1693,9 @@ def get_job_apps():
 
     return jsonify({"applications": applications}), 200
 
-#TODO:
-@app.route('/api/templates', methods=['GET']) #STRETCH
+
+@app.route('/api/templates', methods=['GET'])
 def templates():
-    user_id = request.headers.get('Email', None)
-    if not user_id:
-        return jsonify({"error": "Missing user ID"}), 401
-    
     return jsonify({
         "templates": [
             {
@@ -1733,6 +1736,7 @@ def templates():
             },
         ]
     }), 200
+
 
 # ***** DEBUGGING APIS ********************************************************
 @app.route('/api/testdb/info', methods=['GET']) #FOR TESTING/DEBUGGING PURPOSES ONLY, SHOULD NOT BE ACCESSIBLE THRU FRONT END
