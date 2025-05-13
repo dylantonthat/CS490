@@ -591,9 +591,10 @@ Education"""
             entry = entry + f"\n\t\t - {accomp}"
         format_string = format_string + entry
 
-    format_string = format_string + '\n\nProjects'
-    for proj_entry in projects:
-        entry = f"""
+    if projects:
+        format_string = format_string + '\n\nProjects'
+        for proj_entry in projects:
+            entry = f"""
 - {proj_entry['title']}"""
         for desc in proj_entry['description']:
             entry = entry + f"\n\t - {desc}"
@@ -646,10 +647,10 @@ def markdown_format(resume_json, file_type): # .md .html .pdf .docx
         for accomp in job_entry['accomplishments']:
             entry = entry + f"\n\t\t - {accomp}"
         format_string = format_string + entry
-
-    format_string = format_string + '\n\n## Projects'
-    for proj_entry in projects:
-        entry = f"""
+    if projects:
+        format_string = format_string + '\n\n## Projects'
+        for proj_entry in projects:
+            entry = f"""
 - {proj_entry['title']}"""
         for desc in proj_entry['description']:
             entry = entry + f"\n\t - {desc}"
@@ -710,6 +711,11 @@ Do NOT:
 - Do not reformat the LaTeX beyond placeholder replacement and the skills section.
 - Do not skip escaping LaTeX special characters.
 - Do not reduce the skills categories below 3 under any condition.
+
+THE ONLY EXCEPTION TO LATEX ENVIRONMENTS:
+If the JSON resume contains no projects (i.e., the "projects" field is missing or an empty list), remove all LaTeX lines or sections that relate to projects. 
+Do not leave empty section headings, environments, or bullets. 
+Omit the entire Projects section entirely in that case.
 
 Output:
 Return a single .tex file with:
