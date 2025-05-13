@@ -24,8 +24,9 @@ export default function TemplateSelector({ onSelect }: { onSelect: (id: string) 
   };
 
   return (
-    <div className="w-full p-6 bg-white dark:bg-gray-900 rounded-xl shadow border border-gray-200 dark:border-gray-800">
-      <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Select a Resume Template</h2>
+    <div className="w-full p-6 bg-white dark:bg-gray-900 rounded-xl shadow border border-gray-200 dark:border-gray-800 space-y-4">
+      <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Select a Resume Template</h2>
+
       <select
         value={selected}
         onChange={handleChange}
@@ -38,6 +39,16 @@ export default function TemplateSelector({ onSelect }: { onSelect: (id: string) 
           </option>
         ))}
       </select>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+        {templates.map((t) => (
+          <div key={t.templateId} className="border rounded p-3 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+            <img src={t.previewUrl} alt={t.name} className="w-full h-40 object-cover rounded mb-2" />
+            <h3 className="font-semibold text-gray-900 dark:text-white">{t.name}</h3>
+            <p className="text-sm text-gray-700 dark:text-gray-300">{t.description}</p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

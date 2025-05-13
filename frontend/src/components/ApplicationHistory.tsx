@@ -1,22 +1,26 @@
+import { useUser } from "@auth0/nextjs-auth0/client";
 import axios from "axios";
 import { useEffect, useState } from "react";
 
 export default function ApplicationHistory() {
   const [apps, setApps] = useState<any[]>([]);
   const [status, setStatus] = useState("loading");
+  const { user } = useUser();
 
   useEffect(() => {
     const fetchApplications = async () => {
       try {
-        const res = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/job-applications`);
+        const res = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/job-applications`, {
+          headers: { Email: user?.email || "" },
+        });
         setApps(res.data.applications || []);
         setStatus("done");
       } catch {
         setStatus("error");
       }
     };
-    fetchApplications();
-  }, []);
+    if (user) fetchApplications();
+  }, [user]);
 
   if (status === "loading") return <p className="text-sm">Loading application history...</p>;
   if (status === "error") return <p className="text-red-500 text-sm">Failed to load application history.</p>;
@@ -28,9 +32,11 @@ export default function ApplicationHistory() {
       <ul className="divide-y divide-gray-200 dark:divide-gray-700 text-sm">
         {apps.map((app, idx) => (
           <li key={idx} className="py-2">
-            <p><strong>Resume:</strong> {app.resumeId}</p>
-            <p><strong>Job:</strong> {app.jobId}</p>
-            <p><strong>Date:</strong> {new Date(app.timestamp).toLocaleString()}</p>
+            <p><strong>Application ID:</strong> {app.applicationId}</p>
+            <p><strong>Resume ID:</strong> {app.resumeId}</p>
+            <p><strong>Job ID:</strong> {app.jobId}</p>
+            <p><strong>Applied At:</strong> {new Date(app.appliedAt).toLocaleString()}</p>
+            <p><strong>Job Text:</strong> {app.jobText}</p>
           </li>
         ))}
       </ul>
