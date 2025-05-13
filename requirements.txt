@@ -11,3 +11,5 @@ weasyprint
 pypandoc==1.15
 pandoc
 gunicorn
+texlive-full
+libreoffice
