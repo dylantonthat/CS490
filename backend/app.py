@@ -1652,6 +1652,7 @@ def post_job_apps():
         "applicationId": application_id,
         "userId": user_id,
         "resumeId": resumeId,
+        "resumeTitle": resume.get("resume_title", "Untitled Resume"),
         "jobId": jobId,
         "appliedAt": applied_at
     })
@@ -1662,7 +1663,7 @@ def post_job_apps():
         "appliedAt": applied_at
     }), 200
 
-@app.route('/api/user/job-applications', methods=['GET']) #STRETCH
+@app.route('/api/user/job-applications', methods=['GET']) #STRETCH"""
 def get_job_apps():
     user_id = request.headers.get('Email', None)
     if not user_id:
@@ -1670,7 +1671,7 @@ def get_job_apps():
     
     applications_cursor = user_application_collection.find(
         {"userId": user_id},
-        {"_id": 0, "applicationId": 1, "resumeId": 1, "jobId": 1, "appliedAt": 1}
+        {"_id": 0, "applicationId": 1, "resumeId": 1, "resumeTitle":1, "jobId": 1, "appliedAt": 1}
     ).sort("appliedAt", -1)
 
     applications = []
@@ -1686,6 +1687,7 @@ def get_job_apps():
         applications.append({
             "applicationId": app["applicationId"],
             "resumeId": app["resumeId"],
+            "resumeTitle": app["resumeTitle"],
             "jobId": app["jobId"],
             "appliedAt": app["appliedAt"],
             "jobText": job_text
