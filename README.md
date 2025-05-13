@@ -41,6 +41,8 @@
    ```sh
    export OPENAI_API_KEY=(put openai api key here)
    sudo apt install -y libreoffice # Needed for docx files
+   sudo apt install pandoc # Needed for converting formatted resumes to docx
+   sudo apt install texlive-full
    pip install -r requirements.txt
    ```
 4. Start the Flask server:

@@ -1,0 +1,137 @@
+%%%%%%%%%%%%%%%%%
+% This is a two-column CV template based on moderncv.cls
+% (v1.0, May 16 2024) written by Genki Ogaki (rockstarogk@gmail.com). Compiles with XeLaTeX.
+%
+%% It may be distributed and/or modified under the
+%% conditions of the LaTeX Project Public License, either version 1.3
+%% of this license or (at your option) any later version.
+%% The latest version of this license is in
+%%    http://www.latex-project.org/lppl.txt
+%% and version 1.3 or later is part of all distributions of LaTeX
+%% version 2003/12/01 or later.
+%%%%%%%%%%%%%%%%
+
+% environment
+\documentclass[11pt,a4paper]{moderncv}
+\moderncvtheme[blue]{banking}
+\nopagenumbers{}
+
+\usepackage[T1]{fontenc}
+\usepackage{inputenc}
+\usepackage[scale=0.9]{geometry}
+\usepackage{tabularx}
+\usepackage{mathpazo}
+% \usepackage[sfdefault]{noto-sans} % NEW ADDITION
+
+% macro
+\renewcommand*{\labelitemi}{-}
+
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+\newcolumntype{C}{>{\centering\arraybackslash}X}
+\newcolumntype{R}{>{\raggedleft\arraybackslash}X}
+
+\newcommand*{\experienceentry}[5][1.5mm]{
+    \subsection{#2} \vspace{-1.5mm}
+    \begin{tabularx}{\textwidth}{LR}
+        {\itshape #3} & {\itshape #4, #5}
+    \end{tabularx}
+    \par\addvspace{#1}
+}
+
+\newcommand*{\projectentry}[2][1.5mm]{
+    \subsection{#2} \vspace{-1.5mm}
+    \par\addvspace{#1}
+}
+
+\newcommand*{\educationentry}[4][0.5mm]{
+    \begin{tabularx}{\textwidth}{LR}
+        {\bfseries #3} & {\bfseries #4} \\
+    \end{tabularx}
+    {\itshape #2}
+    \par\addvspace{#1}
+}
+
+\newcommand*{\scoreentry}[3][2.5mm]{
+    {\bfseries #2} \\
+    {\itshape #3}
+    \par\addvspace{#1}
+}
+
+% preamble
+\firstname{Taro}
+\familyname{Tanaka}
+% \address{Tokyo, Japan}{}
+
+% document
+\begin{document}
+\maketitle
+\vspace{-9.0mm}
+\begin{tabularx}{\textwidth}{C C C}
+    \emailsymbol\enspace \emaillink{XXXXXX@gmail.com} & \mobilephonesymbol\enspace (+81) XX-XXXX-XXXX
+\end{tabularx}
+\vspace{-2.0mm}
+
+% left column
+\begin{minipage}[t]{0.62\textwidth}
+\section{EXPERIENCE}
+\experienceentry{"Company"}{"Title"}{"startDate" - "endDate"}{}
+
+\begin{itemize}
+    \item "Responsibilities"
+    \item "Accomplishments 1"
+    \item "Accomplishments 2"
+    \item "Accomplishments +"
+\end{itemize}
+\vspace{2.0mm}
+
+\experienceentry{BBB company}{Web Engineer and Math Teacher}{Apr 2019 - Mar 2020}{Kyoto, Japan}
+
+\begin{itemize}
+    \item Deployed websites to promote the founder's initiatives, attracting prospective students and enhancing online visibility.
+    \item Built the websites using 3-tier architecture, implemented in Python with Flask framework; containerized with Docker for streamlined maintenance and deployed on GCP to optimize costs.
+\end{itemize}
+
+\section{PROJECTS}
+\projectentry{"Title"}
+
+\begin{itemize}
+    \item "Description 1"
+    \item "Description 2"
+    \item "Description +"
+\end{itemize}
+\vspace{2.0mm}
+
+\projectentry{Project BBB}
+
+\begin{itemize}
+    \item Led team of 7 in collaborative project with the UI/UX team to enhance multivariate testing processes.
+    \item Developed and implemented mathematical models to address UI/UX challenges, translating academic research into Python code.
+    \item Optimized web application testing by applying "best arm identification" algorithm from multi-armed bandit theory, reducing the number of test patterns and improving conversion rates by 8\%.
+\end{itemize}
+
+
+\end{minipage}
+\hfill
+% right column
+\begin{minipage}[t]{0.35\textwidth}
+\section{SUMMARY}
+Skilled data scientist specializing in machine learning and financial engineering with 4 years of experience. Persistent dedication, analytical prowess and strong soft skills for fostering collaborative work relationships.
+
+\section{SKILLS}
+\begin{tabularx}{\textwidth}{>{\bfseries}l@{\hskip 3.5mm}L}
+Back End & Python, C++ \\
+Front End & HTML, CSS, JavaScript \\
+DBMS & BigQuery, Oracle \\
+OS & macOS, Linux(CentOS) \\
+DevOps & Docker, GitLab, GitLab CI \\
+Misc. & AWS, GCP, \LaTeX \\
+Soft Skills & Resilience, Attentiveness
+\end{tabularx}
+
+\section{EDUCATION}
+\educationentry{"Degree"}{"University"}{}
+GPA: "GPA"/4.00
+
+\end{minipage}
+
+\end{document}

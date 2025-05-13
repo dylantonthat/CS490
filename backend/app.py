@@ -14,6 +14,9 @@ import tempfile
 import subprocess
 from bson.json_util import dumps
 from datetime import datetime, timezone
+import markdown
+from weasyprint import HTML
+import pypandoc
 
 client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY")) #API KEY MUST BE SET IN ENVIRONMENT
 
@@ -22,6 +25,16 @@ RESUME_FAILED = {}
 RESUME_FAILED_JSON = {}
 
 ALLOWED_EXTENSIONS = {'docx', 'pdf'}
+#Formatting types
+# ALLOWED_FORMATS = {'plain', 'markdown', 'html', 'pdf', 'docx'}
+ALLOWED_FORMATS = {'txt', 'md', 'html', 'pdf', 'docx', None}
+ALLOWED_TEMPLATES = {'one_col', 
+                     'one_col_blue', 
+                     'one_col_sans', 
+                     'two_col', 
+                     'two_col_blue', 
+                     'two_col_sans', 
+                     None}
 
 clientDB = MongoClient("mongodb+srv://kdv:fp4ZIfpKYM3zghYX@kdv-cluster.wn6dsp1.mongodb.net/?retryWrites=true&w=majority&appName=kdv-cluster")
 db = clientDB['cs490_project']
@@ -29,8 +42,10 @@ fs = gridfs.GridFS(db)
 user_info_collection = db['user_info']
 user_resume_collection = db['resumes']
 user_resume_gen_collection = db['resumes_gen']
+user_resume_format_collection = db['resumes_format']
 user_freeform_collection = db['freeform']
 user_job_desc_collection = db['job_desc']
+user_application_collection = db['applications']
 
 app = Flask(__name__)
 CORS(app, origins=["http://localhost:3000"])
@@ -178,12 +193,22 @@ Return a JSON object with this structure:
       "accomplishments": ["", ""]
     }}
   ],
+  "projects":[
+    {{
+        "title": "",
+        "description": ["", ""]
+    }}
+  ],
   "skills": ["", ""]
 }}
 
 Only include fields you can extract.
 Do not guess missing values, leave them blank.
 Use the exact parameter names.
+
+Any category name related to projects, extracurriculars, or activities goes under projects
+
+Any category name related to careers, experience, work experience, etc, goes under the "career" entry. 
 
 It is important to distinguish responsibility and accomplishments for each career.
 The responsibility should be their main job description for that task, there should only be one.
@@ -226,158 +251,158 @@ Here's the resume text:
         print("OpenAI API error:", e)
         return None
 
-# def ai_freeform(text): #OBSOLETE FUNCTION
-#     prompt = f"""
-# You are an intelligent parser for resumes. 
-# Given the raw text of career history information, extract the following structured information in JSON format.
+def ai_freeform(text): #OBSOLETE FUNCTION
+    prompt = f"""
+You are an intelligent parser for resumes. 
+Given the raw text of career history information, extract the following structured information in JSON format.
 
-# Return a JSON object with this structure:
+Return a JSON object with this structure:
 
-# {{
-#   "contact": {{
-#     "name": "",
-#     "email": "",
-#     "phone": ""
-#   }},
-#   "education": [
-#     {{
-#       "degree": "",
-#       "institution": "",
-#       "startDate": "",
-#       "endDate": "",
-#       "gpa": ""
-#     }}
-#   ],
-#   "career": [
-#     {{
-#       "title": "",
-#       "company": "",
-#       "startDate": "",
-#       "endDate": "",
-#       "responsibilities": "",
-#       "accomplishments": ["", ""]
-#     }}
-#   ],
-#   "skills": ["", ""]
-# }}
+{{
+  "contact": {{
+    "name": "",
+    "email": "",
+    "phone": ""
+  }},
+  "education": [
+    {{
+      "degree": "",
+      "institution": "",
+      "startDate": "",
+      "endDate": "",
+      "gpa": ""
+    }}
+  ],
+  "career": [
+    {{
+      "title": "",
+      "company": "",
+      "startDate": "",
+      "endDate": "",
+      "responsibilities": "",
+      "accomplishments": ["", ""]
+    }}
+  ],
+  "skills": ["", ""]
+}}
 
-# Since we are extracting only career history, all fields under contact and education must be left blank.
-# You can also extract skills from the freeform text and store them in skills (ex. Python, Javascript). However if there are no notable skills you can leave it blank.
-# It must be formatted like this to be used in future steps involving resumes.
-# Only include fields you can extract.
-# Do not guess missing values, leave them blank.
-# Use the exact parameter names.
+Since we are extracting only career history, all fields under contact and education must be left blank.
+You can also extract skills from the freeform text and store them in skills (ex. Python, Javascript). However if there are no notable skills you can leave it blank.
+It must be formatted like this to be used in future steps involving resumes.
+Only include fields you can extract.
+Do not guess missing values, leave them blank.
+Use the exact parameter names.
 
-# The career history text can have multiple instances of careers. Each should be stored as a list following the JSON format.
+The career history text can have multiple instances of careers. Each should be stored as a list following the JSON format.
 
-# It is important to distinguish responsibility and accomplishments for each career.
-# The responsibility should be their main job description for that task, there should only be one.
-# The accomplishments should be a list of accomplishments they were able to achieve, there can be multiple
-# Either of these can be blank.
-# For example, a responsibility would be: created QA tests for the development team to use.
-# An accomplishment would be: cut costs by 25% by implementing a new feature.
-# It is up to you to determine what is a feature and what is an accomplishment.
-# If none of the sentences under a career seems like the main responsibility, then leave responsibility blank and put them all in accomplishments as a list.
+It is important to distinguish responsibility and accomplishments for each career.
+The responsibility should be their main job description for that task, there should only be one.
+The accomplishments should be a list of accomplishments they were able to achieve, there can be multiple
+Either of these can be blank.
+For example, a responsibility would be: created QA tests for the development team to use.
+An accomplishment would be: cut costs by 25% by implementing a new feature.
+It is up to you to determine what is a feature and what is an accomplishment.
+If none of the sentences under a career seems like the main responsibility, then leave responsibility blank and put them all in accomplishments as a list.
 
-# Here's the career history text:
+Here's the career history text:
 
-# \"\"\"{text}\"\"\"
-# """
-#     try:
-#         response = client.chat.completions.create(model="gpt-3.5-turbo", # model="gpt-4o", (switched out for cheaper testing)
-#         messages=[
-#             {"role": "system", "content": "You are a helpful assistant that extracts structured career history data from free-form text."},
-#             {"role": "user", "content": prompt}
-#         ],
-#         temperature=0.2)
+\"\"\"{text}\"\"\"
+"""
+    try:
+        response = client.chat.completions.create(model="gpt-3.5-turbo", # model="gpt-4o", (switched out for cheaper testing)
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant that extracts structured career history data from free-form text."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.2)
 
-#         content = response.choices[0].message.content.strip()
-#         # Try parsing it as JSON
+        content = response.choices[0].message.content.strip()
+        # Try parsing it as JSON
 
-#         if content.startswith("```"):
-#             content = re.sub(r"^```[a-zA-Z]*\n?", "", content)
-#             content = content.rstrip("```").strip()
+        if content.startswith("```"):
+            content = re.sub(r"^```[a-zA-Z]*\n?", "", content)
+            content = content.rstrip("```").strip()
 
-#         parsed = json.loads(content)
-#         return parsed
+        parsed = json.loads(content)
+        return parsed
 
-#     except json.JSONDecodeError as e:
-#         print("Failed to parse JSON:", e)
-#         print("Raw content:", content)
-#         return None
-#     except Exception as e:
-#         print("OpenAI API error:", e)
-#         return None
+    except json.JSONDecodeError as e:
+        print("Failed to parse JSON:", e)
+        print("Raw content:", content)
+        return None
+    except Exception as e:
+        print("OpenAI API error:", e)
+        return None
 
-# def ai_skills(text): #might need to be changed if using a form instead
-#     prompt = f"""
-# You are an intelligent parser for resumes. 
-# Given the raw text of different skills, extract the following structured information in JSON format.
+def ai_skills(text): #might need to be changed if using a form instead
+    prompt = f"""
+You are an intelligent parser for resumes. 
+Given the raw text of different skills, extract the following structured information in JSON format.
 
-# Return a JSON object with this structure:
+Return a JSON object with this structure:
 
-# {{
-#   "contact": {{
-#     "name": "",
-#     "email": "",
-#     "phone": ""
-#   }},
-#   "education": [
-#     {{
-#       "degree": "",
-#       "institution": "",
-#       "startDate": "",
-#       "endDate": "",
-#       "gpa": ""
-#     }}
-#   ],
-#   "career": [
-#     {{
-#       "title": "",
-#       "company": "",
-#       "startDate": "",
-#       "endDate": "",
-#       "responsibilities": "",
-#       "accomplishments": ["", ""]
-#     }}
-#   ],
-#   "skills": ["", ""]
-# }}
+{{
+  "contact": {{
+    "name": "",
+    "email": "",
+    "phone": ""
+  }},
+  "education": [
+    {{
+      "degree": "",
+      "institution": "",
+      "startDate": "",
+      "endDate": "",
+      "gpa": ""
+    }}
+  ],
+  "career": [
+    {{
+      "title": "",
+      "company": "",
+      "startDate": "",
+      "endDate": "",
+      "responsibilities": "",
+      "accomplishments": ["", ""]
+    }}
+  ],
+  "skills": ["", ""]
+}}
 
-# Since we are extracting only skills, all fields under contact, education, and career must be left blank.
-# It must be formatted like this to be used in future steps involving resumes.
-# Only include fields you can extract.
-# Use the exact parameter names.
+Since we are extracting only skills, all fields under contact, education, and career must be left blank.
+It must be formatted like this to be used in future steps involving resumes.
+Only include fields you can extract.
+Use the exact parameter names.
 
-# Here's the freeform skills text:
+Here's the freeform skills text:
 
-# \"\"\"{text}\"\"\"
-# """
-#     try:
-#         response = client.chat.completions.create(model="gpt-3.5-turbo", # model="gpt-4o", (switched out for cheaper testing)
-#         messages=[
-#             {"role": "system", "content": "You are a helpful assistant that extracts skills from free-form text."},
-#             {"role": "user", "content": prompt}
-#         ],
-#         temperature=0.2)
+\"\"\"{text}\"\"\"
+"""
+    try:
+        response = client.chat.completions.create(model="gpt-3.5-turbo", # model="gpt-4o", (switched out for cheaper testing)
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant that extracts skills from free-form text."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.2)
 
-#         content = response.choices[0].message.content.strip()
-#         # Try parsing it as JSON
+        content = response.choices[0].message.content.strip()
+        # Try parsing it as JSON
 
-#         if content.startswith("```"):
-#             content = re.sub(r"^```[a-zA-Z]*\n?", "", content)
-#             content = content.rstrip("```").strip()
+        if content.startswith("```"):
+            content = re.sub(r"^```[a-zA-Z]*\n?", "", content)
+            content = content.rstrip("```").strip()
 
-#         parsed = json.loads(content)
-#         return parsed
+        parsed = json.loads(content)
+        return parsed
 
-#     except json.JSONDecodeError as e:
-#         print("Failed to parse JSON:", e)
-#         print("Raw content:", content)
-#         return None
-#     except Exception as e:
-#         print("OpenAI API error:", e)
-#         return None
+    except json.JSONDecodeError as e:
+        print("Failed to parse JSON:", e)
+        print("Raw content:", content)
+        return None
+    except Exception as e:
+        print("OpenAI API error:", e)
+        return None
 
 def ai_resume(job_text, hist_text, freeform_text, resume_id):
     prompt = f"""
@@ -417,18 +442,26 @@ Return a JSON object with this structure:
       "accomplishments": ["", ""]
     }}
   ],
+  "projects":[
+    {{
+        "title": "",
+        "description": ["", ""]
+    }}
+  ],
   "skills": ["", ""]
 }}
 
 Instructions:
 - Do not modify the contact or education fields.
 - Keep the original job titles, companies, and dates in each career entry.
-- You may remove irrelevant career entries if the user has more than 3 total.
+- You may remove irrelevant career/project entries if the user has more than 3 total.
+- Remove irrelevant skills but leave at least half of the original 
 - Do not guess missing values. If a field is missing, leave it blank.
 
 For each career entry:
 - Edit "responsibilities" to match the job description.
 - Add "accomplishments" that show measurable success or impact.
+- Adjust the "description" for projects to emphasize skills relevant to the job description. 
 - Use freeform experience where relevant.
 
 INPUTTED VALUES:
@@ -473,9 +506,269 @@ INPUTTED VALUES:
         print("OpenAI API error:", e)
         return None
 
+def ai_advice(resume, job_desc):
+    prompt = f"""
+You are a career advisor AI. Analyze the resume and job description provided below. Then return clear, practical, and professional advice in plain text that helps the candidate improve their resume and increase their chances of landing the job.
+
+Your advice should include:
+• Suggestions for improvements or missing content in the resume.
+• Insights into how well the resume matches the job description.
+• Tips for tailoring the resume or preparing for interviews.
+
+Resume (structured JSON):
+{json.dumps(resume, indent=2)}
+
+Job Description (plain text):
+{job_desc}
+
+Write your response directly to the user in a friendly but professional tone. Do not include JSON, markdown, or headings — only the plain text advice.
+""".strip()
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo", # model="gpt-4o", (switched out for cheaper testing)
+            messages=[
+                {"role": "system", "content": "You are a helpful and experienced career advisor who gives specific and personalized guidance based on a user's resume and a job posting."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7 #higher to make advice more natural-sounding and stuff
+        )
+
+        content = response.choices[0].message.content.strip()
+
+        if content.startswith("```"):
+            content = re.sub(r"^```[a-zA-Z]*\n?", "", content)
+            content = content.rstrip("```").strip()
+
+        return content
+
+    except Exception as e:
+        print("OpenAI API error:", e)
+        return None
+
+# functions for formatting resumes
+def plain_format(resume_json): # .txt
+    # extracting data
+    contact = resume_json['contact']
+    education = resume_json['education']
+    career = resume_json['career']
+    projects = resume_json['projects']
+    skills = resume_json['skills']
+    
+    # string that goes in the txt file
+    format_string = f"""{contact['name']} Resume
+Contact
+ - Email: {contact['email']}
+ - Phone: {contact['phone']}
+
+Education"""
+
+    for edu_entry in education:
+        entry = f"""
+ - {edu_entry['institution']}
+\t - {edu_entry['degree']} 
+\t - {edu_entry['startDate']} - {edu_entry['endDate']}
+\t - {edu_entry['gpa']}"""
+        format_string = format_string + entry
+
+    format_string = format_string + '\n\nCareers'
+    for job_entry in career:
+        entry = f"""
+- {job_entry['title']}        
+\t - {job_entry['company']}
+\t - {job_entry['startDate']} - {job_entry['endDate']}
+\t - Responsibilities:
+\t\t - {job_entry['responsibilities']}
+\t - Accomplishments:"""
+        for accomp in job_entry['accomplishments']:
+            entry = entry + f"\n\t\t - {accomp}"
+        format_string = format_string + entry
+
+    format_string = format_string + '\n\nProjects'
+    for proj_entry in projects:
+        entry = f"""
+- {proj_entry['title']}"""
+        for desc in proj_entry['description']:
+            entry = entry + f"\n\t - {desc}"
+        format_string = format_string + entry
+
+    format_string = format_string + f"""
+\nSkills
+ - {', '.join(skills)}    
+"""
+    print(format_string)
+    resume_format = bytes(format_string, encoding='utf-8')
+
+    file_id = fs.put(resume_format, filename=f"resume.txt")
+
+    return file_id
+
+def markdown_format(resume_json, file_type): # .md .html .pdf .docx
+    # extracting data
+    contact = resume_json['contact']
+    education = resume_json['education']
+    career = resume_json['career']
+    projects = resume_json['projects']
+    skills = resume_json['skills']
+    
+    # Markdown string 
+    format_string = f"""# {contact['name']} Resume
+## Contact
+ - **Email**: {contact['email']}
+ - **Phone**: {contact['phone']}
+
+## Education"""
+
+    for edu_entry in education:
+        entry = f"""
+ - **{edu_entry['institution']}**
+\t - {edu_entry['degree']} 
+\t - {edu_entry['startDate']} - {edu_entry['endDate']}
+\t - GPA: {edu_entry['gpa']}"""
+        format_string = format_string + entry
+
+    format_string = format_string + '\n\n## Careers'
+    for job_entry in career:
+        entry = f"""
+- **{job_entry['title']}**        
+\t - {job_entry['company']}
+\t - {job_entry['startDate']} - {job_entry['endDate']}
+\t - **Responsibilities**:
+\t\t - {job_entry['responsibilities']}
+\t - **Accomplishments**:"""
+        for accomp in job_entry['accomplishments']:
+            entry = entry + f"\n\t\t - {accomp}"
+        format_string = format_string + entry
+
+    format_string = format_string + '\n\n## Projects'
+    for proj_entry in projects:
+        entry = f"""
+- {proj_entry['title']}"""
+        for desc in proj_entry['description']:
+            entry = entry + f"\n\t - {desc}"
+        format_string = format_string + entry
+
+    format_string = format_string + f"""
+\n## Skills
+ - {', '.join(skills)}    
+"""
+    print(format_string)
+
+    format_html = markdown.markdown(format_string)
+    if file_type == 'html':
+        resume_format = bytes(format_html, encoding='utf-8')
+    elif file_type == 'pdf':
+        resume_format = HTML(string=format_html).write_pdf()
+    elif file_type == 'docx':
+        with tempfile.NamedTemporaryFile(suffix=file_type) as tmp:
+            pypandoc.convert_text(format_string, 'docx', format='md', outputfile=tmp.name)
+            resume_format = tmp.read()
+        tmp.close()
+    else:
+        resume_format = bytes(format_string, encoding='utf-8')
+
+    file_id = fs.put(resume_format, filename=f"resume.{file_type}")
+
+    return file_id
+
+def template_format(resume_json, template_id, file_type): # .html .pdf .docx .tex(if template selected)
+    with open(f'templates/{template_id}.tex', 'r', encoding='utf-8') as file:
+        template = file.read()
+
+    prompt = f"""
+You are an AI that formats resumes into LaTeX using a given template and a structured JSON resume.
+
+You will receive:
+- A structured resume in JSON format.
+- A LaTeX template (.tex format).
+
+Your Task:
+Apply the resume data to the template by replacing all placeholder content. You must:
+
+1. Replace only quoted placeholders in the template. These will appear as values in quotation marks (e.g., "Job Title"). You must replace the entire quoted string with actual content, omitting the quotation marks. For example, "Job Title" should become Software Engineer. Do not leave quotation marks in the final output. Also, do not modify any formatting or structure outside of these replacements.
+2. Rearrange the skills section only:
+   - Reflect the categories listed in the JSON.
+   - Include at least 3 skill categories (e.g., Languages, Tools, Frameworks).
+   - Do not leave only 1 or 2 categories — merge or rename categories if necessary to meet the minimum.
+3. Generate a short summary if the template includes a summary section.
+4. Escape all special LaTeX characters in the resume content (such as %, &, _, #, $, brackets, ^, ~, and \\) using a backslash (\\).
+   This is mandatory. Any such character must be escaped, even if the original JSON does not include the backslash.
+   Example: "100% complete" → "100\\% complete"
+5. Maintain the latex format and return just the resume as if it were meant to go straight into a .tex file. Do not leave any extra comments, just go straight to the latex file.
+
+Do NOT:
+- Do not add or remove LaTeX environments.
+- Do not reformat the LaTeX beyond placeholder replacement and the skills section.
+- Do not skip escaping LaTeX special characters.
+- Do not reduce the skills categories below 3 under any condition.
+
+Output:
+Return a single .tex file with:
+- All placeholders replaced.
+- A valid, compile-ready LaTeX resume.
+- Escaped special characters.
+- At least 3 skill categories.
+Resume (structured JSON):
+{json.dumps(resume_json, indent=2)}
+
+Template (latex format):
+{template}
+""".strip()
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo", # model="gpt-4o", (switched out for cheaper testing)
+            messages=[
+                {"role": "system", "content": "You are a helpful and experienced career advisor who gives specific and personalized guidance based on a user's resume and a job posting."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7 #higher to make advice more natural-sounding and stuff
+        )
+
+        content = response.choices[0].message.content.strip()
+
+        if content.startswith("```"):
+            content = re.sub(r"^```[a-zA-Z]*\n?", "", content)
+            content = content.rstrip("```").strip()
 
 
-# ***** SPRINT 2 APIS BELOW
+        print(content)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tex_path = os.path.join(tmpdir, "resume.tex")
+            
+            # Write LaTeX to .tex file
+            with open(tex_path, "w") as f:
+                f.write(content)
+
+            output_path = os.path.join(tmpdir, f"resume.{file_type}")
+
+            try:
+                if file_type == "pdf":
+                    # Compile LaTeX to PDF
+                    subprocess.run(["pdflatex", "-output-directory", tmpdir, tex_path], check=True)
+                    output_path = os.path.join(tmpdir, "resume.pdf")
+                elif file_type in ("html", "docx"):
+                    # Use pandoc to convert to HTML or DOCX
+                    subprocess.run(["pandoc", tex_path, "-o", output_path], check=True)
+                elif file_type == "tex":
+                    # If tex, just keep the original
+                    output_path = tex_path
+                else:
+                    raise ValueError("Unsupported format")
+                # Read the converted file and store in GridFS
+                with open(output_path, "rb") as f:
+                    file_id = fs.put(f, filename=f"resume.{file_type}")
+                    return file_id
+
+            except subprocess.CalledProcessError as e:
+                print("Conversion failed:", e)
+                return None
+
+    except Exception as e:
+        print("OpenAI API error:", e)
+        return None
+
+# ***** SPRINT 2 APIS BELOW ********************************************************
 @app.route('/')
 def hello():
     return 'Hello, World!'
@@ -484,7 +777,7 @@ def hello():
 def upload_resume():
     user_id = request.headers.get('Email', None)
     if not user_id:
-        return jsonify({"error": "Missing user ID"}), 400
+        return jsonify({"error": "Missing user ID"}), 401
     
     print("FILE RECEIVED:", request.files) #debugging
     if 'file' not in request.files:
@@ -573,7 +866,7 @@ def upload_resume():
 def upload_freeform_career_history():
     user_id = request.headers.get('Email', None)
     if not user_id:
-        return jsonify({"error": "Missing user ID"}), 400
+        return jsonify({"error": "Missing user ID"}), 401
     
     if 'text' not in request.json:
         return jsonify({"error": "No text part"}), 400
@@ -636,7 +929,6 @@ def get_edu_history():
         }), 200
     return jsonify(user_edu), 200
 
-#TODO:
 @app.route('/api/resumes/history/<int:id>', methods=['PUT']) #SPRINT 2 STRETCH
 def update_career_history(id):
     # 'id' is the index from the frontend, the frontend outputs them in the same order as the database, so it normally should match up
@@ -708,7 +1000,6 @@ def delete_career_history():
         'status': 'removed',
     }), 200
 
-#TODO:
 @app.route('/api/resumes/education/<int:id>', methods=['PUT']) #SPRINT 2 STRETCH
 def update_edu(id):
     # 'id' is the index from the frontend, the frontend outputs them in the same order as the database, so it normally should match up
@@ -780,7 +1071,9 @@ def delete_edu():
         'status': 'removed',
     }), 200
 
-# ***** SPRINT 3 APIS BELOW
+
+
+# ***** SPRINT 3 APIS BELOW ********************************************************
 @app.route('/api/jobs/submit', methods=['POST'])
 def upload_job_desc():
     user_id = request.headers.get('Email', None)
@@ -835,7 +1128,6 @@ def get_job_desc():
         })
 
     return jsonify({'jobs': jobs}), 200
-
 
 @app.route('/api/resumes/generate', methods=['POST'])  # SPRINT 3 CORE
 def generate_resume():
@@ -903,12 +1195,11 @@ def generate_resume():
         'status': 'processing'
     }), 200
 
-
 @app.route('/api/resumes/status/<resume_id>', methods=['GET'])
 def get_resume_status(resume_id):
     user_id = request.headers.get('Email', None)
     if not user_id:
-        return jsonify({"error": "Missing user ID"}), 400
+        return jsonify({"error": "Missing user ID"}), 401
 
     if resume_id in RESUME_PROCESSING:
         return jsonify({
@@ -958,7 +1249,7 @@ def get_resume_status(resume_id):
 def get_raw_resume(resume_id):
     user_id = request.headers.get('Email', None)
     if not user_id:
-        return jsonify({"error": "Missing user ID"}), 400
+        return jsonify({"error": "Missing user ID"}), 401
 
     resume_doc = user_resume_gen_collection.find_one({'resume_id': resume_id})
     if not resume_doc:
@@ -969,7 +1260,6 @@ def get_raw_resume(resume_id):
 
     resume_doc.pop('_id', None) 
     return jsonify({"raw": resume_doc}), 200
-
 
 @app.route('/api/resumes/contact', methods=['GET']) #SPRINT 3 STRETCH
 def view_contact_info():
@@ -991,7 +1281,7 @@ def view_contact_info():
 def update_contact_info():
     user_id = request.headers.get('Email', None)
     if not user_id:
-        return jsonify({"error": "Missing user ID"}), 400
+        return jsonify({"error": "Missing user ID"}), 401
 
     contact_data = request.json.get('contact')
     if not contact_data:
@@ -1107,12 +1397,13 @@ def view_resume_file(resume_id):
 #   style={{ border: 'none' }}
 # />
 
-#ok so these last two make no sense because we already have a GET and PUT /api/resumes/history but he also wants us to view and edit the freeform text?
+# ok so these last two make no sense because we already have a GET and PUT /api/resumes/history 
+# but he also wants us to view and edit the freeform text?
 @app.route('/api/resumes/freeform', methods=['GET'])
 def get_freeform():
     user_id = request.headers.get('Email', None)
     if not user_id:
-        return jsonify({"error": "Missing user ID"}), 400
+        return jsonify({"error": "Missing user ID"}), 401
 
     history_entries = user_freeform_collection.find({"user_id": user_id}).sort("timestamp", -1)
 
@@ -1121,12 +1412,11 @@ def get_freeform():
         mimetype='application/json'
     )
 
-
 @app.route('/api/resumes/freeform/<history_id>', methods=['PUT']) #SPRINT 3 STRETCH
 def update_freeform(history_id):
     user_id = request.headers.get('Email', None)
     if not user_id:
-        return jsonify({"error": "Missing user ID"}), 400
+        return jsonify({"error": "Missing user ID"}), 401
 
     new_text = request.json.get('text')
     if not new_text:
@@ -1157,7 +1447,266 @@ def update_freeform(history_id):
     }), 200
 
 
-# ***** DEBUGGING APIS
+# ***** SPRINT 4 APIS BELOW ********************************************************
+@app.route('/api/resumes/format', methods=['POST']) #CORE
+def resume_format():
+    #STRETCH: PDF and LaTeX output support
+    user_id = request.headers.get('Email', None)
+    if not user_id:
+        return jsonify({"error": "Missing user ID"}), 401
+    
+    # Grabbing data from request body
+    data = request.get_json()
+    resume_id = data.get('resumeId')
+    if not resume_id:
+        return jsonify({'error': 'invalid resume id'}), 400
+    format_type = data.get('formatType')
+    template_id = data.get('templateId')
+    style_id = data.get('styleId')
+    
+    if (format_type not in ALLOWED_FORMATS) or (template_id not in ALLOWED_TEMPLATES):
+        return jsonify({"error": "invalid request parameters"}), 400
+
+    resume = user_resume_gen_collection.find_one({'user_id':user_id, 'resume_id':resume_id},{'_id':0, 'user_id':0, 'resume_id':0, 'job_id':0, 'status':0})
+    print(f"****Generated resume\n{resume}")
+
+    print(f'****{template_id}')
+    if format_type == 'txt' and not template_id:
+        file_id = plain_format(resume)
+    elif format_type in ['md', 'html', 'pdf', 'docx', None] and not template_id:
+        file_id = markdown_format(resume, format_type)
+    elif format_type in ['tex', 'html', 'pdf', 'docx'] and template_id:
+        file_id = template_format(resume, template_id, format_type)
+    else:
+        return jsonify({"error": "invalid combination of request parameters"}), 400
+
+    formatted_resume_id = str(uuid.uuid4())
+    user_resume_format_collection.insert_one({
+        'formatted_resume_id': formatted_resume_id,
+        'user_id': user_id,
+        'file_id': file_id,
+        'filename': f"resume.{format_type}",
+        'content_type': format_type,
+    })
+    return jsonify({
+        "formattedResumeId ": formatted_resume_id,
+    }), 200
+
+@app.route('/api/resumes/download/<formattedResumeId>', methods=['GET']) #CORE
+def download_resume(formattedResumeId):
+    user_id = request.headers.get('Email', None)
+    if not user_id:
+        return jsonify({"error": "Missing user ID"}), 401
+    print(formattedResumeId)
+    resume_meta = user_resume_format_collection.find_one({'formatted_resume_id': formattedResumeId})
+    if not resume_meta:
+        return jsonify({'error': 'Resume not found'}), 404
+
+    file_id = resume_meta.get('file_id')
+    if not file_id:
+        return jsonify({'error': 'File ID missing'}), 500
+
+    try:
+        file_data = fs.get(file_id)
+    except gridfs.errors.NoFile:
+        return jsonify({'error': 'File not found in GridFS'}), 404
+
+    return Response(
+        file_data.read(),
+        mimetype=resume_meta.get('content_type'),
+        headers={
+            "Content-Disposition": f"inline; filename={resume_meta.get('filename')}"
+        }
+    )
+
+@app.route('/api/jobs/advice', methods=['POST']) #CORE
+def job_advice():
+    user_id = request.headers.get('Email', None)
+    if not user_id:
+        return jsonify({"error": "Missing user ID"}), 401
+    
+    #verify no missing fields
+    jobId = request.json.get('jobId')
+    if not jobId:
+        return jsonify({"error": "Missing jobId field"}), 400
+    resumeId = request.json.get('resumeId')
+    if not resumeId:
+        return jsonify({"error": "Missing resumeId field"}), 400
+    print("good request\n\n") #debugging
+
+    #verify resume
+    resume = user_resume_gen_collection.find_one({"resume_id": resumeId})
+    if not resume:
+        return jsonify({"error": "Resume not found"}), 404
+    if resume.get('user_id') != user_id:
+        return jsonify({"error": "Forbidden: Resume does not belong to user"}), 403
+    
+    #filter resume
+    filtered_resume = {
+        "career": resume.get("career", []),
+        "contact": resume.get("contact", {}),
+        "education": resume.get("education", []),
+        "skills": resume.get("skills", [])
+    }
+    print("RESUME GOTTEN: ", filtered_resume, "\n\n") #debugging
+
+    #verify job desc
+    job_desc = user_job_desc_collection.find_one({"jobs.job_id": jobId})
+    if not job_desc:
+        return jsonify({"error": "Job description not found"}), 404
+    if job_desc.get('user_id') != user_id:
+        return jsonify({"error": "Forbidden: Job does not belong to user"}), 403
+    job_entry = next((job for job in job_desc['jobs'] if job['job_id'] == jobId), None)
+    if not job_entry:
+        return jsonify({"error": "Job description not found"}), 404
+    
+    #filter job desc
+    job_text = job_entry.get("text", "")
+    print("JOB DESC GOTTEN: ", job_text, "\n\n") #debugging
+
+    advice = ai_advice(filtered_resume, job_text)
+
+    return jsonify({
+        "advice": advice,
+    }), 200
+
+@app.route('/api/user/job-applications', methods=['POST']) #STRETCH
+def post_job_apps():
+    user_id = request.headers.get('Email', None)
+    if not user_id:
+        return jsonify({"error": "Missing user ID"}), 401
+    
+    #verify no missing fields
+    jobId = request.json.get('jobId')
+    if not jobId:
+        return jsonify({"error": "Missing jobId field"}), 400
+    resumeId = request.json.get('resumeId')
+    if not resumeId:
+        return jsonify({"error": "Missing resumeId field"}), 400
+    print("good request\n\n") #debugging
+
+    #verify resume
+    resume = user_resume_gen_collection.find_one({"resume_id": resumeId})
+    if not resume:
+        return jsonify({"error": "Resume not found"}), 404
+    if resume.get('user_id') != user_id:
+        return jsonify({"error": "Forbidden: Resume does not belong to user"}), 403
+    
+
+    #verify job desc
+    job_desc = user_job_desc_collection.find_one({"jobs.job_id": jobId})
+    if not job_desc:
+        return jsonify({"error": "Job description not found"}), 404
+    if job_desc.get('user_id') != user_id:
+        return jsonify({"error": "Forbidden: Job does not belong to user"}), 403
+    job_entry = next((job for job in job_desc['jobs'] if job['job_id'] == jobId), None)
+    if not job_entry:
+        return jsonify({"error": "Job description not found"}), 404
+
+    existing = user_application_collection.find_one({
+        "resumeId": resumeId,
+        "jobId": jobId
+    })
+    if existing:
+        return jsonify({"error": "Duplicate application: jobId and resumeId already used"}), 409
+
+    application_id = str(uuid.uuid4())
+    applied_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+    user_application_collection.insert_one({
+        "applicationId": application_id,
+        "userId": user_id,
+        "resumeId": resumeId,
+        "jobId": jobId,
+        "appliedAt": applied_at
+    })
+
+    return jsonify({
+        "applicationId": application_id,
+        "status": "saved",
+        "appliedAt": applied_at
+    }), 200
+
+@app.route('/api/user/job-applications', methods=['GET']) #STRETCH
+def get_job_apps():
+    user_id = request.headers.get('Email', None)
+    if not user_id:
+        return jsonify({"error": "Missing user ID"}), 401
+    
+    applications_cursor = user_application_collection.find(
+        {"userId": user_id},
+        {"_id": 0, "applicationId": 1, "resumeId": 1, "jobId": 1, "appliedAt": 1}
+    ).sort("appliedAt", -1)
+
+    applications = []
+    for app in applications_cursor:
+        job_doc = user_job_desc_collection.find_one(
+            {"user_id": user_id, "jobs.job_id": app['jobId']},
+            {"jobs.$": 1}
+        )
+        job_text = None
+        if job_doc and 'jobs' in job_doc and len(job_doc['jobs']) > 0:
+            job_text = job_doc['jobs'][0].get('text')
+
+        applications.append({
+            "applicationId": app["applicationId"],
+            "resumeId": app["resumeId"],
+            "jobId": app["jobId"],
+            "appliedAt": app["appliedAt"],
+            "jobText": job_text
+        })
+
+    return jsonify({"applications": applications}), 200
+
+#TODO:
+@app.route('/api/templates', methods=['GET']) #STRETCH
+def templates():
+    user_id = request.headers.get('Email', None)
+    if not user_id:
+        return jsonify({"error": "Missing user ID"}), 401
+    
+    return jsonify({
+        "templates": [
+            {
+                "templateId": "one_col",
+                "name": "One Column",
+                "description": "Clean and traditional one column resume.",
+                "previewUrl": "/templates/one_col.jpg"
+            },
+            {
+                "templateId": "one_col_blue",
+                "name": "One Column - Blue",
+                "description": "One column resume with blue highlights.",
+                "previewUrl": "/templates/one_col_blue.jpg"
+            },
+            {
+                "templateId": "one_col_sans",
+                "name": "One Column - Sans Serif",
+                "description": "One column resune with a more modern Sans Serif font.",
+                "previewUrl": "/templates/one_col_sans.jpg"
+            },
+            {
+                "templateId": "two_col",
+                "name": "Two Column",
+                "description": "Simple two column resume for a dynamic look",
+                "previewUrl": "/templates/two_col.jpg"
+            },
+            {
+                "templateId": "two_col_blue",
+                "name": "Two Column - Blue",
+                "description": "Two column resume with blue highlights.",
+                "previewUrl": "/templates/two_col_blue.jpg"
+            },
+            {
+                "templateId": "two_col_sans",
+                "name": "Two Column - Sans Serif",
+                "description": "Two column resune with a more modern Sans Serif font.",
+                "previewUrl": "/templates/two_col_sans.jpg"
+            },
+        ]
+    }), 200
+
+# ***** DEBUGGING APIS ********************************************************
 @app.route('/api/testdb/info', methods=['GET']) #FOR TESTING/DEBUGGING PURPOSES ONLY, SHOULD NOT BE ACCESSIBLE THRU FRONT END
 def get_all_users():
     info = user_info_collection.find()
@@ -1182,6 +1731,16 @@ def get_all_job_desc():
 def get_all_resumes_gen():
     resumes_gen = user_resume_gen_collection.find()
     return dumps(resumes_gen), 200
+
+@app.route('/api/testdb/resumesformat', methods=['GET']) #FOR TESTING/DEBUGGING PURPOSES ONLY, SHOULD NOT BE ACCESSIBLE THRU FRONT END
+def get_all_resumes_format():
+    resumes_format = user_resume_format_collection.find()
+    return dumps(resumes_format), 200
+
+@app.route('/api/testdb/applications', methods=['GET']) #FOR TESTING/DEBUGGING PURPOSES ONLY, SHOULD NOT BE ACCESSIBLE THRU FRONT END
+def get_all_applications():
+    applications = user_application_collection.find()
+    return dumps(applications), 200
 
 if __name__ == '__main__':
     app.run(debug=True)
