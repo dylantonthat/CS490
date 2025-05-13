@@ -1,14 +1,18 @@
+import { useUser } from "@auth0/nextjs-auth0/client";
 import axios from "axios";
 import { useEffect, useState } from "react";
 
 export default function TemplateSelector({ onSelect }: { onSelect: (id: string) => void }) {
   const [templates, setTemplates] = useState<any[]>([]);
   const [selected, setSelected] = useState<string>("");
+  const { user } = useUser();
 
   useEffect(() => {
     const fetchTemplates = async () => {
       try {
-        const res = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/templates`);
+        const res = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/templates`,{
+          headers: { Email: user.email! }
+        });
         setTemplates(res.data.templates || []);
       } catch {
         console.error("Failed to fetch templates");
