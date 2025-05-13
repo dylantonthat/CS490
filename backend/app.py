@@ -696,6 +696,7 @@ Your Task:
 Apply the resume data to the template by replacing all placeholder content. You must:
 
 1. Replace only quoted placeholders in the template. These will appear as values in quotation marks (e.g., "Job Title"). You must replace the entire quoted string with actual content, omitting the quotation marks. For example, "Job Title" should become Software Engineer. Do not leave quotation marks in the final output. Also, do not modify any formatting or structure outside of these replacements.
+   - Example: For the user John Smith, "Name" gets replaced by John Smith. 
 2. Rearrange the skills section only:
    - Reflect the categories listed in the JSON.
    - Include at least 3 skill categories (e.g., Languages, Tools, Frameworks).
@@ -704,16 +705,18 @@ Apply the resume data to the template by replacing all placeholder content. You 
 4. Escape all special LaTeX characters in the resume content (such as %, &, _, #, $, brackets, ^, ~, and \\) using a backslash (\\).
    This is mandatory. Any such character must be escaped, even if the original JSON does not include the backslash.
    Example: "100% complete" → "100\\% complete"
-   Example: "#C complete" → "\\#C complete"
+   Example: "#C" → "\\#C"
 5. Maintain the latex format and return just the resume as if it were meant to go straight into a .tex file. Do not leave any extra comments, just go straight to the latex file.
+6. If a user has no GPA listed, do not include it and remove any text related to it, without causing any errors.
 
 Do NOT:
 - Do not add or remove LaTeX environments.
 - Do not reformat the LaTeX beyond placeholder replacement and the skills section.
 - Do not skip escaping LaTeX special characters.
+   Example: "#C" → "\\#C"
 - Do not reduce the skills categories below 3 under any condition.
-- Do not forget to backslash before special characters
-   Example: "#C complete" → "\\#C complete"
+- Do not forget to backslash before special characters.
+   Example: "#C" → "\\#C"
 
 
 THE ONLY EXCEPTION TO LATEX ENVIRONMENTS:
@@ -724,8 +727,9 @@ Omit the entire Projects section entirely in that case.
 Output:
 Return a single .tex file with:
 - All placeholders replaced.
-- A valid, compile-ready LaTeX resume.
+- A valid, compile-ready LaTeX resume. No errors at all.
 - Escaped special characters.
+   Example: "#C" → "\\#C"
 - At least 3 skill categories.
 Resume (structured JSON):
 {json.dumps(resume_json, indent=2)}
@@ -736,12 +740,12 @@ Template (latex format):
 
     try:
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo", # model="gpt-4o", (switched out for cheaper testing)
+            model="gpt-4o", # model="gpt-4o", (switched out for cheaper testing)
             messages=[
                 {"role": "system", "content": "You are a helpful and experienced career advisor who gives specific and personalized guidance based on a user's resume and a job posting."},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.7 #higher to make advice more natural-sounding and stuff
+            temperature=0.3 #higher to make advice more natural-sounding and stuff
         )
 
         content = response.choices[0].message.content.strip()
