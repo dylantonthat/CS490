@@ -1,4 +1,5 @@
 import AdvicePanel from "@/components/AdvicePanel";
+import ApplicationPanel from "@/components/ApplicationPanel";
 import ApplicationHistory from "@/components/ApplicationHistory";
 import CareerForm from "@/components/CareerForm";
 import ContactForm from "@/components/ContactForm";
@@ -89,6 +90,7 @@ function HomePage() {
           <TemplateSelector onSelect={setSelectedTemplateId} />
           <FormatResumePanel templateId={selectedTemplateId} />
           <AdvicePanel />
+          <ApplicationPanel/>
           <ApplicationHistory />
         </div>
       </div>
